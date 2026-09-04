@@ -26,12 +26,12 @@
   ;; --- knowledge -----------------------------------------------------
   (chunk-type trial task state target-color target-orient target-shape outcome)
 
-  (define-chunks
-      (start name start) (searching name searching) (responded name responded)
-      (waiting name waiting) (done name done)
-      (feature name feature) (conjunction name conjunction) (spatial name spatial)
-      ;; display vocabulary used by harness/tasks.py
-      (bar name bar) (digit name digit) (two name two) (five name five))
+  ;; Guarded, because some of these already exist: the vision module defines
+  ;; its channel names and ACT-R's audio module already knows DIGIT.
+  (dolist (c '(start searching responded waiting done
+               feature conjunction spatial
+               bar digit two five))          ; display vocabulary from tasks.py
+    (unless (chunk-p-fct c) (define-chunks-fct `((,c name ,c)))))
 
   (define-chunks (goal isa trial task feature state waiting))
   (goal-focus goal)

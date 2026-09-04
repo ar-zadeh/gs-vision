@@ -271,6 +271,13 @@ def compare_lisp_python(trials_csv, task: str, param_delta: dict | None = None,
     params = replace(DEFAULTS, **(param_delta or {}))
     py = pd.DataFrame(run_cells(params, tasks=(task,), n_per_cell=n_per_cell, seed=seed))
     py["rt_ms"] = py["rt"] * 1000.0
+    # Compare the module's own search time where both sides record it.  RT
+    # would fold in the response stage, which is a fixed constant in Python
+    # and a real production plus motor path in Lisp, and that difference is
+    # not a port error.
+    col = "search_ms" if "search_ms" in lisp.columns else "rt_ms"
+    if col == "search_ms":
+        py["search_ms"] = py["search_time"] * 1000.0
 
     rows = []
     for n in sorted(lisp["set_size"].unique()):
@@ -280,8 +287,8 @@ def compare_lisp_python(trials_csv, task: str, param_delta: dict | None = None,
                          & (df["correct"])]
                 if sub.empty:
                     return float("nan"), float("nan"), 0
-                return (float(sub["rt_ms"].mean()),
-                        float(sub["rt_ms"].std(ddof=1) / max(1, len(sub)) ** 0.5),
+                return (float(sub[col].mean()),
+                        float(sub[col].std(ddof=1) / max(1, len(sub)) ** 0.5),
                         len(sub))
             lm, lse, ln = _cell(lisp)
             pm, pse, pn = _cell(py)
@@ -354,11 +361,11 @@ def main() -> int:
         delta = {}
         if args.compare_params:
             key = args.compare_key or args.compare
-            delta = json.loads(pathlib.Path(args.compare_params).read_text())                .get(key, {}).get("delta", {})
+            fitted = json.loads(pathlib.Path(args.compare_params).read_text())
+            delta = fitted.get(key, {}).get("delta", {})
         cmp = compare_lisp_python(args.trials, args.compare, delta,
                                   n_per_cell=args.n_per_cell, seed=args.seed)
-        print("
-Lisp vs Python mirror, correct-trial cell means (ms)")
+        print("\nLisp vs Python mirror, correct-trial cell means (ms)")
         print(cmp.to_string(index=False, float_format=lambda v: f"{v:9.1f}"))
         res["lisp_vs_python"] = cmp.to_dict("records")
 

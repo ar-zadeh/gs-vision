@@ -191,9 +191,17 @@ def _cell_positions(n: int, w_deg: float, h_deg: float, rng: np.random.Generator
     return out
 
 
+FEATURE_COLORS = ("red", "green")
+
+
 def make_display(task: str, set_size: int, target_present: bool,
-                 rng: np.random.Generator) -> Display:
-    """Build one display of ``task`` at ``set_size``."""
+                 rng: np.random.Generator, target_color: str = "red") -> Display:
+    """Build one display of ``task`` at ``set_size``.
+
+    ``target_color`` only applies to the feature task, where it swaps which of
+    red and green is the singleton.  Alternating it between trials is how the
+    priming manipulation of phase 6 is run.
+    """
     if task not in TASKS:
         raise ValueError(f"unknown task {task!r}; expected one of {TASKS}")
 
@@ -209,7 +217,8 @@ def make_display(task: str, set_size: int, target_present: bool,
     for i, (x, y) in enumerate(pos):
         is_t = i == tgt
         if task == "feature":
-            items.append(_bar(x, y, "red" if is_t else "green", True, is_t))
+            other = FEATURE_COLORS[1 - FEATURE_COLORS.index(target_color)]
+            items.append(_bar(x, y, target_color if is_t else other, True, is_t))
         elif task == "conjunction":
             if is_t:
                 items.append(_bar(x, y, "red", True, True))
@@ -254,9 +263,12 @@ TEMPLATES = {
 }
 
 
-def matches_template(item: Item, task: str) -> bool:
+def matches_template(item: Item, task: str, target_color: str = "red") -> bool:
     """Ground truth: does this item satisfy the full target template?"""
-    for k, v in TEMPLATES[task].items():
+    tpl = dict(TEMPLATES[task])
+    if task == "feature":
+        tpl["color"] = target_color
+    for k, v in tpl.items():
         iv = getattr(item, k)
         if isinstance(v, str):
             if iv != v:
@@ -277,3 +289,44 @@ if __name__ == "__main__":  # small smoke test
         print(f"{t:12s} n={d.set_size:2d} ecc {min(ecc):4.1f}-{max(ecc):4.1f} deg "
               f"target={tg.shape}/{tg.color}")
     print("field 22.5 deg =", deg2px(22.5), "px; 1 px =", round(px2deg(1), 4), "deg")
+
+
+# --- additional-singleton task (Adam, Patel, Rangan and Serences 2021) -----
+#
+# Tier 1's second dataset is the additional-singleton paradigm: the target is a
+# singleton on one dimension and, on half the trials, an irrelevant singleton
+# on another dimension competes for selection.  Adam et al.'s target is a shape
+# singleton and their distractor a colour singleton; shape does not guide in
+# this module (section 5.1), so the target here is an *orientation* singleton
+# instead, which is the same paradigm expressed in the module's guiding
+# dimensions.  Their experiment 1c is the comparison condition: variable
+# distractor colour, so no learned suppression, and homogeneous non-targets.
+
+SINGLETON_SET_SIZES = (3, 4, 5, 6)
+SINGLETON_TEMPLATE = {"orient": 90.0}      # the odd, horizontal bar
+
+
+def make_singleton_display(set_size: int, distractor_present: bool,
+                           rng: np.random.Generator,
+                           distractor_color: str | None = None) -> Display:
+    """One additional-singleton display; the target is always present."""
+    pos = _cell_positions(set_size, BAR_H_DEG, BAR_H_DEG, rng)
+    tgt = int(rng.integers(set_size))
+    dis = -1
+    if distractor_present:
+        choices = [i for i in range(set_size) if i != tgt]
+        dis = int(rng.choice(choices))
+    if distractor_color is None:
+        distractor_color = "red"
+    items = []
+    for i, (x, y) in enumerate(pos):
+        if i == tgt:
+            items.append(_bar(x, y, "green", False, True))       # horizontal
+        elif i == dis:
+            items.append(_bar(x, y, distractor_color, True, False))
+        else:
+            items.append(_bar(x, y, "green", True, False))
+    d = Display(task="additional_singleton", set_size=set_size,
+                target_present=True, items=items)
+    d.distractor_present = distractor_present
+    return d

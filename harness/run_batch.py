@@ -131,11 +131,21 @@ def _template_args(task: str) -> tuple:
 
 
 def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
-              progress=True):
+              progress=True, prevalence: float = 0.5, priming: bool = False):
+    """Run one block.
+
+    ``prevalence`` is the proportion of target-present trials; at 0.5 the plan
+    is balanced exactly, otherwise presence is sampled.  ``priming`` alternates
+    the feature target's colour in runs, so that repeat and switch trials can
+    be compared (phase 6).
+    """
     import numpy as np
     from tqdm import tqdm
 
     actr.load_act_r_model(MODEL_FILE)
+    # :seed is a model parameter, so it has to be set after the model loads;
+    # setting it before only draws "no current model" and is ignored.
+    actr.set_parameter_value(":seed", [seed, 0])
     apply_params(actr, params)
     phash = param_hash(params)
 
@@ -150,18 +160,37 @@ def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
 
     trial_rows, fix_rows = [], []
     rng = np.random.default_rng(seed)
-    plan = [(t, n, p) for t in tasks for n in set_sizes for p in (True, False)
-            for _ in range(n_per_cell)]
+    if abs(prevalence - 0.5) < 1e-9:
+        plan = [(t, n, p) for t in tasks for n in set_sizes for p in (True, False)
+                for _ in range(n_per_cell)]
+    else:
+        plan = [(t, n, bool(rng.random() < prevalence))
+                for t in tasks for n in set_sizes for _ in range(2 * n_per_cell)]
     rng.shuffle(plan)
+
+    # Priming: hold the target colour for a run of 1 to 4 trials, then switch.
+    colors, cur, left = [], "red", 0
+    for _ in plan:
+        if not priming:
+            colors.append("red")
+            continue
+        if left == 0:
+            cur = "green" if cur == "red" else "red"
+            left = int(rng.integers(1, 5))
+        colors.append(cur)
+        left -= 1
 
     it = tqdm(plan, desc=f"{tag} seed{seed}", disable=not progress)
     for trial, (task, n, present) in enumerate(it):
-        display = make_display(task, n, present, rng)
+        tcolor = colors[trial]
+        display = make_display(task, n, present, rng, target_color=tcolor)
         response["key"] = None
         actr.delete_all_visicon_features()
         actr.call_command("gs-reset-search")
         actr.add_visicon_features(*display.visicon_features())
         color, orient, shape = _template_args(task)
+        if task == "feature":
+            color = tcolor
         actr.call_command("gs-trial-setup", task, color, orient, shape)
 
         t0 = actr.get_time()
@@ -185,8 +214,14 @@ def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
             "correct": int(correct) if key is not None else "",
             "rt_ms": rt_ms if key is not None else "",
             "n_fixations": stats[0], "n_rejected": stats[1],
+            # the module's own search time, excluding the production and motor
+            # path, so it can be compared with the Python mirror directly
+            "search_ms": stats[2],
             "quit_reason": stats[3], "param_hash": phash,
             "timed_out": int(key is None),
+            "target_color": tcolor,
+            "color_repeat": int(trial > 0 and colors[trial - 1] == tcolor),
+            "prevalence": prevalence,
         })
         for idx, fx in enumerate(actr.call_command("gs-fixation-log") or []):
             fix_rows.append({"trial": trial, "idx": idx, "t": fx[0],
@@ -245,6 +280,10 @@ def main() -> int:
     ap.add_argument("--params-key", default="shared")
     ap.add_argument("--out", default=str(ROOT / "data" / "model"))
     ap.add_argument("--verbose", action="store_true", help="show the Lisp output")
+    ap.add_argument("--prevalence", type=float, default=0.5,
+                    help="proportion of target-present trials (phase 6)")
+    ap.add_argument("--priming", action="store_true",
+                    help="alternate the feature target colour in runs (phase 6)")
     args = ap.parse_args()
 
     params = load_params(args.params, args.params_key)
@@ -253,10 +292,10 @@ def main() -> int:
 
     with ACTRSession(verbose=args.verbose) as s:
         for seed in args.seeds:
-            s.actr.set_parameter_value(":seed", [seed, 0])
             t, f, rows = run_batch(s.actr, args.tasks, args.set_sizes,
                                    args.n_per_cell, seed, params,
-                                   pathlib.Path(args.out), args.tag)
+                                   pathlib.Path(args.out), args.tag,
+                                   prevalence=args.prevalence, priming=args.priming)
             done = sum(1 for r in rows if r["rt_ms"] != "")
             print(f"seed {seed}: {len(rows)} trials, {done} responded -> {t.name}, {f.name}")
     return 0

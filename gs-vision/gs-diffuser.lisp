@@ -194,6 +194,10 @@ like a retrieval failure."
                     (- (mp-time-ms) (fix-start vis-mod)))
               (fixation-log vis-mod)))
       (setf (fix-start vis-mod) (mp-time-ms)))
+    ;; GS-END-SEARCH stopped the clock before the encoding was scheduled, so
+    ;; add it back: the search is not over until the object is in the buffer,
+    ;; and reference/gs_hybrid.py counts it the same way.
+    (incf (search-elapsed vis-mod) (round (seconds->ms secs)))
     (gs-trace "GS-DECIDE ~a hit" chunk)
     (if (and chunk (chunk-p-fct chunk))
         (schedule-event-relative (seconds->ms secs) 'encoding-complete

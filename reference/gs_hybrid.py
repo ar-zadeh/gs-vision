@@ -725,6 +725,61 @@ def run_cells(params: GSParams = DEFAULTS, tasks: Sequence[str] = TASKS,
     return rows
 
 
+def run_prevalence(params: GSParams = DEFAULTS, task: str = "conjunction",
+                   prevalence: float = 0.5, n_trials: int = 2000, seed: int = 0,
+                   set_sizes: Sequence[int] = SET_SIZES,
+                   burn_in: float = 0.3) -> list:
+    """One observer at a given target prevalence (phase 6).
+
+    The adaptive quitting threshold is the only thing that can respond to
+    prevalence, and it needs a long burn-in to settle, so the default here
+    discards the first 30 percent of trials.
+    """
+    model = GSHybrid(params, seed=seed)
+    rng = np.random.default_rng(seed + 500)
+    rows = []
+    cut = int(n_trials * burn_in)
+    for k in range(n_trials):
+        n = int(set_sizes[int(rng.integers(len(set_sizes)))])
+        present = bool(rng.random() < prevalence)
+        r = model.run_trial(make_display(task, n, present, rng))
+        r.pop("fixations", None)
+        r["prevalence"] = prevalence
+        if k >= cut:
+            rows.append(r)
+    return rows
+
+
+def run_priming(params: GSParams = DEFAULTS, n_trials: int = 2000, seed: int = 0,
+                set_sizes: Sequence[int] = SET_SIZES, burn_in: float = 0.2) -> list:
+    """Feature search whose target colour holds for runs of 1 to 4 trials.
+
+    A trial is a *repeat* when its target colour matches the previous trial's.
+    The priming traces of section 5.3 should make repeats faster.
+    """
+    model = GSHybrid(params, seed=seed)
+    rng = np.random.default_rng(seed + 700)
+    rows = []
+    cut = int(n_trials * burn_in)
+    cur, left, prev = "red", 0, None
+    for k in range(n_trials):
+        if left == 0:
+            cur = "green" if cur == "red" else "red"
+            left = int(rng.integers(1, 5))
+        left -= 1
+        n = int(set_sizes[int(rng.integers(len(set_sizes)))])
+        present = bool(rng.random() < 0.5)
+        d = make_display("feature", n, present, rng, target_color=cur)
+        r = model.run_trial(d, template={"color": cur})
+        r.pop("fixations", None)
+        r["target_color"] = cur
+        r["color_repeat"] = int(prev == cur)
+        prev = cur
+        if k >= cut:
+            rows.append(r)
+    return rows
+
+
 def slopes(rows, task: str, set_sizes: Sequence[int] = SET_SIZES) -> dict:
     """Least-squares slope and intercept (ms) over correct-trial cell means."""
     out = {}
@@ -831,3 +886,32 @@ if __name__ == "__main__":
     for t, s in res.items():
         print(f"{t:12s} {s['tp'][0]:11.1f} {s['ta'][0]:11.1f} {s['ratio']:6.2f} "
               f"{s['miss'][18]:7.3f} {s['fa'][18]:6.3f} {s['mean_fixations']:5.1f}")
+
+
+def run_singleton(params: GSParams = DEFAULTS, n_trials: int = 3000, seed: int = 0,
+                  set_sizes=(3, 4, 5, 6), burn_in: float = 0.2) -> list:
+    """The additional-singleton paradigm (Adam et al. 2021, experiment 1c).
+
+    The target is an orientation singleton; on half the trials an irrelevant
+    colour singleton competes.  The distractor colour varies from trial to
+    trial, matching the variable-colour condition, so nothing can be learned
+    and suppressed.  The capture cost is the RT difference between
+    distractor-present and distractor-absent trials.
+    """
+    from harness.tasks import SINGLETON_TEMPLATE, make_singleton_display
+    model = GSHybrid(params, seed=seed)
+    rng = np.random.default_rng(seed + 900)
+    palette = ("red", "green")
+    rows = []
+    cut = int(n_trials * burn_in)
+    for k in range(n_trials):
+        n = int(set_sizes[int(rng.integers(len(set_sizes)))])
+        present = bool(rng.random() < 0.5)
+        col = palette[int(rng.integers(len(palette)))] if present else None
+        d = make_singleton_display(n, present, rng, distractor_color=col)
+        r = model.run_trial(d, template=SINGLETON_TEMPLATE)
+        r.pop("fixations", None)
+        r["distractor_present"] = present
+        if k >= cut:
+            rows.append(r)
+    return rows
