@@ -1,0 +1,8 @@
+.venv/
+actr7.x/
+actr7.x.zip
+data/human/
+data/model/
+*.fasl
+__pycache__/
+*.pyc

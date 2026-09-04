@@ -1,0 +1,7 @@
+numpy>=1.26
+scipy>=1.13          # Wald/inverse-Gaussian sampling, ex-Gaussian MLE, differential evolution
+pandas>=2.2
+matplotlib>=3.8
+tqdm>=4.66           # batch progress
+pytest>=8.0          # tests/
+multimatch-gaze>=0.1.0   # MultiMatch scanpath metric (Tier 2/3); PyPI latest is 0.1.3, pulls numpy/pandas/scipy only

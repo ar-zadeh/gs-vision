@@ -1,0 +1,6 @@
+# Tier 3 only (DNN priority front end and fixation-map metrics). Install into the
+# same venv as requirements.txt when you reach the Tier 3 phase, not before.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2
+torchvision>=0.17
+pysaliency>=0.2.22
