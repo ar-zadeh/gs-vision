@@ -6,3 +6,4 @@ data/model/
 *.fasl
 __pycache__/
 *.pyc
+reference/vendor/

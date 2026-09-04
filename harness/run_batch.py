@@ -1,0 +1,266 @@
+"""Drive the Lisp gs-vision module over the ACT-R remote interface.
+
+Handoff section 8.2.  Starts its own SBCL, connects with the tutorial's
+``actr.py``, runs the three benchmark tasks trial by trial, and writes one
+trial-level CSV plus one fixation-level CSV per run.
+
+Why the Lisp process is started here rather than attached to
+--------------------------------------------------------------
+``load-gs-vision.lisp`` calls ``undefine-module :vision``, which prints a
+warning and does nothing once a model exists.  Sending it to an already
+running ACT-R with ``load_act_r_code`` therefore only works before the first
+model is defined, which is not a state a shared session can be relied on to
+be in.  Starting a private SBCL and shutting it down with the module's
+``gs-quit-lisp`` command is deterministic.
+
+Between trials the module's per-trial state is cleared with
+``gs-reset-search`` rather than ``actr.reset()``.  A full reset would wipe the
+adaptive quitting threshold, the priming traces and the prevalence window,
+and those have to persist: one model run is one simulated subject.
+
+Usage::
+
+    python harness/run_batch.py --n-per-cell 500 --tag default
+    python harness/run_batch.py --n-per-cell 2000 --tag fitted --params data/model/phase1.json
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import pathlib
+import subprocess
+import sys
+import time
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "actr7.x" / "tutorial" / "python"))
+
+from harness.tasks import SET_SIZES, TASKS, TEMPLATES, make_display  # noqa: E402
+
+LOAD_FILE = (ROOT / "gs-vision" / "load-gs-vision.lisp").as_posix()
+MODEL_FILE = (ROOT / "models" / "search-model.lisp").as_posix()
+PORT_FILE = pathlib.Path.home() / "act-r-port-num.txt"
+TIMEOUT_S = 20.0           # simulated seconds to allow one trial
+
+
+# --------------------------------------------------------------------------
+# Lisp process
+# --------------------------------------------------------------------------
+
+class ACTRSession:
+    """A private SBCL running ACT-R with gs-vision installed."""
+
+    def __init__(self, verbose: bool = False, startup_timeout: float = 900.0):
+        self.verbose = verbose
+        self.startup_timeout = startup_timeout
+        self.proc = None
+        self.actr = None
+
+    def __enter__(self):
+        stamp_before = PORT_FILE.stat().st_mtime if PORT_FILE.exists() else 0.0
+        self.proc = subprocess.Popen(
+            ["sbcl", "--dynamic-space-size", "4096",
+             "--load", LOAD_FILE, "--eval", "(loop (sleep 1))"],
+            stdout=(None if self.verbose else subprocess.DEVNULL),
+            stderr=subprocess.STDOUT,
+            cwd=str(ROOT),
+        )
+        deadline = time.time() + self.startup_timeout
+        while time.time() < deadline:
+            if self.proc.poll() is not None:
+                raise RuntimeError(f"SBCL exited during startup (code {self.proc.returncode})")
+            if PORT_FILE.exists() and PORT_FILE.stat().st_mtime > stamp_before:
+                time.sleep(2.0)      # let the dispatcher finish coming up
+                break
+            time.sleep(1.0)
+        else:
+            raise TimeoutError("ACT-R did not write its port file in time")
+
+        import actr                                              # noqa: E402
+        self.actr = actr
+        # actr.py connects at import time and leaves the handle in a module
+        # variable, not behind a function.
+        if actr.current_connection is None:
+            raise RuntimeError("could not connect to the ACT-R dispatcher")
+        return self
+
+    def __exit__(self, *exc):
+        try:
+            if self.actr:
+                self.actr.call_command("gs-quit-lisp")
+        except Exception:
+            pass
+        if self.proc:
+            try:
+                self.proc.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+        return False
+
+
+# --------------------------------------------------------------------------
+# One batch
+# --------------------------------------------------------------------------
+
+def param_hash(params: dict) -> str:
+    return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()[:12]
+
+
+def apply_params(actr, params: dict):
+    for name, value in params.items():
+        actr.set_parameter_value(name, value)
+
+
+def _template_args(task: str) -> tuple:
+    tpl = TEMPLATES[task]
+    color = tpl.get("color")
+    orient = tpl.get("orient")
+    shape = tpl.get("shape")
+    # orient reaches the model as a channel name, since :guided and gs-search
+    # both accept a channel symbol in place of a number (handoff section 5.7)
+    orient_name = None
+    if orient is not None:
+        a = abs(float(orient))
+        orient_name = "steep" if a < 22.5 else ("shallow" if a > 67.5 else
+                                                ("right" if orient > 0 else "left"))
+    return color, orient_name, shape
+
+
+def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
+              progress=True):
+    import numpy as np
+    from tqdm import tqdm
+
+    actr.load_act_r_model(MODEL_FILE)
+    apply_params(actr, params)
+    phash = param_hash(params)
+
+    response = {"key": None}
+
+    def on_key(model, key):
+        response["key"] = key
+
+    actr.add_command("gs-batch-key", on_key, "Record the model's keypress.")
+    actr.monitor_command("output-key", "gs-batch-key")
+    actr.install_device(["motor", "keyboard"])
+
+    trial_rows, fix_rows = [], []
+    rng = np.random.default_rng(seed)
+    plan = [(t, n, p) for t in tasks for n in set_sizes for p in (True, False)
+            for _ in range(n_per_cell)]
+    rng.shuffle(plan)
+
+    it = tqdm(plan, desc=f"{tag} seed{seed}", disable=not progress)
+    for trial, (task, n, present) in enumerate(it):
+        display = make_display(task, n, present, rng)
+        response["key"] = None
+        actr.delete_all_visicon_features()
+        actr.call_command("gs-reset-search")
+        actr.add_visicon_features(*display.visicon_features())
+        color, orient, shape = _template_args(task)
+        actr.call_command("gs-trial-setup", task, color, orient, shape)
+
+        t0 = actr.get_time()
+        actr.run(TIMEOUT_S, False)
+        rt_ms = actr.get_time() - t0
+
+        key = response["key"]
+        said_present = key == "j"
+        correct = said_present == present
+        label = ("hit" if said_present else "miss") if present else \
+                ("fa" if said_present else "tn")
+        if key is not None:
+            actr.call_command("gs-trial-feedback", label)
+            actr.run(1.0, False)          # let report-outcome fire
+
+        stats = actr.call_command("gs-search-stats") or [0, 0, 0, "none"]
+        trial_rows.append({
+            "subject_seed": seed, "task": task, "trial": trial, "set_size": n,
+            "target_present": int(present),
+            "response": "" if key is None else key,
+            "correct": int(correct) if key is not None else "",
+            "rt_ms": rt_ms if key is not None else "",
+            "n_fixations": stats[0], "n_rejected": stats[1],
+            "quit_reason": stats[3], "param_hash": phash,
+            "timed_out": int(key is None),
+        })
+        for idx, fx in enumerate(actr.call_command("gs-fixation-log") or []):
+            fix_rows.append({"trial": trial, "idx": idx, "t": fx[0],
+                             "x": round(fx[1], 1), "y": round(fx[2], 1),
+                             "dur": fx[3]})
+
+    actr.remove_command_monitor("output-key", "gs-batch-key")
+    actr.remove_command("gs-batch-key")
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    trials_path = out_dir / f"{tag}_seed{seed}_trials.csv"
+    fix_path = out_dir / f"{tag}_seed{seed}_fixations.csv"
+    _write_csv(trials_path, trial_rows)
+    _write_csv(fix_path, fix_rows)
+    return trials_path, fix_path, trial_rows
+
+
+def _write_csv(path: pathlib.Path, rows: list):
+    if not rows:
+        path.write_text("")
+        return
+    with path.open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+
+
+# --------------------------------------------------------------------------
+
+def load_params(path: str | None, task_key: str = "shared") -> dict:
+    """Translate a fit.json entry into :gs-* parameter settings."""
+    if not path:
+        return {}
+    data = json.loads(pathlib.Path(path).read_text())
+    entry = data.get(task_key) or data.get("_de") or {}
+    delta = entry.get("delta") or {}
+    name_map = {
+        "memory": ":gs-memory", "w_e": ":gs-w-e", "noise": ":gs-noise",
+        "choice_beta": ":gs-choice-beta", "select_interval": ":gs-select-interval",
+        "diffuser_capacity": ":gs-diffuser-capacity", "attn_fvf": ":gs-attn-fvf",
+        "max_fixation": ":gs-max-fixation", "w_td": ":gs-w-td", "w_bu": ":gs-w-bu",
+        "id_drift": ":gs-id-drift", "id_threshold": ":gs-id-threshold",
+        "quit_delta": ":gs-quit-delta",
+    }
+    return {name_map[k]: v for k, v in delta.items() if k in name_map}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--tasks", nargs="*", default=list(TASKS))
+    ap.add_argument("--set-sizes", nargs="*", type=int, default=list(SET_SIZES))
+    ap.add_argument("-n", "--n-per-cell", type=int, default=100)
+    ap.add_argument("--seeds", nargs="*", type=int, default=[1])
+    ap.add_argument("--tag", default="default")
+    ap.add_argument("--params", default=None, help="fit.json written by fit.py")
+    ap.add_argument("--params-key", default="shared")
+    ap.add_argument("--out", default=str(ROOT / "data" / "model"))
+    ap.add_argument("--verbose", action="store_true", help="show the Lisp output")
+    args = ap.parse_args()
+
+    params = load_params(args.params, args.params_key)
+    if params:
+        print("parameters:", params)
+
+    with ACTRSession(verbose=args.verbose) as s:
+        for seed in args.seeds:
+            s.actr.set_parameter_value(":seed", [seed, 0])
+            t, f, rows = run_batch(s.actr, args.tasks, args.set_sizes,
+                                   args.n_per_cell, seed, params,
+                                   pathlib.Path(args.out), args.tag)
+            done = sum(1 for r in rows if r["rt_ms"] != "")
+            print(f"seed {seed}: {len(rows)} trials, {done} responded -> {t.name}, {f.name}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
