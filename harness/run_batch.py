@@ -33,6 +33,7 @@ import json
 import pathlib
 import subprocess
 import sys
+import threading
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -54,18 +55,33 @@ TIMEOUT_S = 20.0           # simulated seconds to allow one trial
 class ACTRSession:
     """A private SBCL running ACT-R with gs-vision installed."""
 
-    def __init__(self, verbose: bool = False, startup_timeout: float = 900.0):
+    def __init__(self, verbose: bool = False, startup_timeout: float = 900.0,
+                 log_path=None):
         self.verbose = verbose
         self.startup_timeout = startup_timeout
+        self.log_path = log_path
+        self.log = None
         self.proc = None
         self.actr = None
 
+    def check_alive(self):
+        if self.proc is not None and self.proc.poll() is not None:
+            tail = ""
+            if self.log_path and pathlib.Path(self.log_path).exists():
+                tail = pathlib.Path(self.log_path).read_text(errors="replace")[-2000:]
+            raise RuntimeError(
+                "SBCL exited (code %s).\n%s" % (self.proc.returncode, tail))
+
     def __enter__(self):
         stamp_before = PORT_FILE.stat().st_mtime if PORT_FILE.exists() else 0.0
+        # Keep the Lisp output.  A crash inside SBCL otherwise leaves the run
+        # hanging on a dead socket with nothing to read, which is the least
+        # debuggable failure this harness can have.
+        self.log = open(self.log_path, "w") if self.log_path else None
         self.proc = subprocess.Popen(
             ["sbcl", "--dynamic-space-size", "4096",
              "--load", LOAD_FILE, "--eval", "(loop (sleep 1))"],
-            stdout=(None if self.verbose else subprocess.DEVNULL),
+            stdout=(None if self.verbose else (self.log or subprocess.DEVNULL)),
             stderr=subprocess.STDOUT,
             cwd=str(ROOT),
         )
@@ -88,17 +104,30 @@ class ACTRSession:
             raise RuntimeError("could not connect to the ACT-R dispatcher")
         return self
 
-    def __exit__(self, *exc):
+    def _quit_lisp(self):
         try:
-            if self.actr:
-                self.actr.call_command("gs-quit-lisp")
+            self.actr.call_command("gs-quit-lisp")
         except Exception:
             pass
-        if self.proc:
+
+    def __exit__(self, *exc):
+        # gs-quit-lisp kills SBCL in the middle of answering, so the client
+        # never sees a reply and actr.py blocks on the socket forever.  Send it
+        # from a daemon thread, give it five seconds, then take the process
+        # down directly.  Without this the harness writes its CSV and then
+        # hangs, which looks exactly like a slow run.
+        if self.actr is not None:
+            t = threading.Thread(target=self._quit_lisp, daemon=True)
+            t.start()
+            t.join(5.0)
+        if self.proc and self.proc.poll() is None:
+            self.proc.terminate()
             try:
-                self.proc.wait(timeout=20)
+                self.proc.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
+        if self.log:
+            self.log.close()
         return False
 
 
@@ -131,7 +160,8 @@ def _template_args(task: str) -> tuple:
 
 
 def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
-              progress=True, prevalence: float = 0.5, priming: bool = False):
+              progress=True, prevalence: float = 0.5, priming: bool = False,
+              session=None):
     """Run one block.
 
     ``prevalence`` is the proportion of target-present trials; at 0.5 the plan
@@ -206,6 +236,8 @@ def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
             actr.call_command("gs-trial-feedback", label)
             actr.run(1.0, False)          # let report-outcome fire
 
+        if session is not None and trial % 50 == 0:
+            session.check_alive()
         stats = actr.call_command("gs-search-stats") or [0, 0, 0, "none"]
         trial_rows.append({
             "subject_seed": seed, "task": task, "trial": trial, "set_size": n,
@@ -290,12 +322,15 @@ def main() -> int:
     if params:
         print("parameters:", params)
 
-    with ACTRSession(verbose=args.verbose) as s:
+    log_path = pathlib.Path(args.out) / f"{args.tag}_lisp.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with ACTRSession(verbose=args.verbose, log_path=log_path) as s:
         for seed in args.seeds:
             t, f, rows = run_batch(s.actr, args.tasks, args.set_sizes,
                                    args.n_per_cell, seed, params,
                                    pathlib.Path(args.out), args.tag,
-                                   prevalence=args.prevalence, priming=args.priming)
+                                   prevalence=args.prevalence, priming=args.priming,
+                                   session=s)
             done = sum(1 for r in rows if r["rt_ms"] != "")
             print(f"seed {seed}: {len(rows)} trials, {done} responded -> {t.name}, {f.name}")
     return 0

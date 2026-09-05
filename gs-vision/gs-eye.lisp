@@ -170,7 +170,11 @@ Phi((s - theta_f e) / sigma).  A feature with no theta -- anything outside
           (let ((ecc (gs-ecc-deg vis-mod (gsi-x icon) (gsi-y icon)))
                 (s (gsi-size-deg icon)))
             (loop for (slot nil) on (gsi-raw icon) by #'cddr
-                  do (let ((th (getf theta slot)))
+                  do (let ((th (or (getf theta slot)
+                                   ;; hue is colour measured continuously, so it
+                                   ;; inherits colour's acuity rather than
+                                   ;; escaping the rule for want of an entry
+                                   (and (eq slot 'hue) (getf theta 'color)))))
                        (if (null th)
                            (setf (gethash slot (gsi-feats icon)) now)
                          (let ((p (gs-normal-cdf (/ (- s (* th ecc)) sigma))))

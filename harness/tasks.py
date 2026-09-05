@@ -172,15 +172,32 @@ def _digit(x_deg, y_deg, shape, is_target):
 
 # --- placement -------------------------------------------------------------
 
+def grid_for(set_size: int) -> int:
+    """Side of the invisible grid: 5 for the benchmark, larger when needed.
+
+    The benchmark set sizes all fit the 5x5 grid of section 8.1.  The Tier 2
+    comparison uses set sizes 42 and 80, so the grid grows and the field grows
+    with it, which holds item density and item size constant rather than
+    packing more items into the same 22.5 degrees.
+    """
+    g = GRID
+    while g * g < set_size:
+        g += 1
+    return g
+
+
+def field_deg(set_size: int) -> float:
+    return grid_for(set_size) * CELL_DEG
+
+
 def _cell_positions(n: int, w_deg: float, h_deg: float, rng: np.random.Generator):
     """Pick ``n`` distinct grid cells and jitter one point inside each."""
-    if n > GRID * GRID:
-        raise ValueError(f"set size {n} exceeds the {GRID}x{GRID} grid")
-    cells = rng.choice(GRID * GRID, size=n, replace=False)
-    half = FIELD_DEG / 2.0
+    grid = grid_for(n)
+    cells = rng.choice(grid * grid, size=n, replace=False)
+    half = grid * CELL_DEG / 2.0
     out = []
     for c in cells:
-        row, col = divmod(int(c), GRID)
+        row, col = divmod(int(c), grid)
         cx0 = -half + col * CELL_DEG        # cell origin, signed deg from centre
         cy0 = -half + row * CELL_DEG
         mx = max(0.0, (CELL_DEG - w_deg) / 2.0)   # keep the item inside its cell
