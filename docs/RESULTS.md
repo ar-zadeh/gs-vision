@@ -95,11 +95,16 @@ conjunction, both inside the 2 to 3 band the handoff asks for, and the
 qualitative ordering feature < conjunction < spatial holds with a wide margin.
 
 The intercepts are the clearer failure: 603 to 788 ms against a human 480 to
-580. About 350 ms of every model RT is the response stage, which section 11
-forbids tuning into the module: a production to issue the search, a production
-to read the result and a `press-key`. The module's own search time is 280 to
-600 ms on top of that. The floor is structural: one selection interval, a
-120 ms identification and, on most trials, one saccade of about 200 ms.
+580. Measured directly from the trial CSVs, the response stage accounts for
+310 ms of the mean RT and 350 ms of the median: a production to issue the
+search, a production to read the result and a `press-key`, which section 11
+forbids tuning into the module. The module's own search time at the smallest
+set size is 299 ms for feature, 397 for conjunction and 561 for spatial
+configuration. That floor is structural: one selection interval, a 120 ms
+identification and, on most trials, at least one saccade of about 200 ms.
+Humans do the same tasks in 480 to 690 ms in total, so either the model's
+per-item cost or its response stage has to come down, and the response stage
+is the one that is not the module's to change.
 
 ## Tier 1: capture cost
 
