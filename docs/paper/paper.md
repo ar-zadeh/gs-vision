@@ -1,8 +1,8 @@
 ---
 title: "Bringing Guided Search into ACT-R: A tutorial on the gs-vision module and its validation against benchmark visual search data"
 author:
-  - "Bruce Farnod^1^ and Frank E. Ritter^2^"
-  - "^1^ [Affiliation, department, institution, city, country]"
+  - "Amirreza Bagherzadeh^1^ and Frank E. Ritter^2^"
+  - "^1^ Independent researcher"
   - "^2^ College of Information Sciences and Technology, The Pennsylvania State University, University Park, PA, USA"
 date: "Manuscript prepared for the Behavior Research Methods Tutorial Collection. Corresponding author: Frank E. Ritter, College of Information Sciences and Technology, The Pennsylvania State University, University Park, PA 16802, USA. Email: Frank.ritter@psu.edu. The manuscript was last edited on September 6, 2026."
 ---
