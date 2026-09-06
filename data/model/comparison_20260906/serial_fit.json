@@ -1,0 +1,85 @@
+{
+  "model": "serial_fit",
+  "title": "Serial self-terminating (FIT)",
+  "n_fitted": 9,
+  "per_task": false,
+  "bounds": [
+    [
+      "t_feature",
+      0.01,
+      0.3
+    ],
+    [
+      "t_item_conjunction",
+      0.005,
+      0.2
+    ],
+    [
+      "t_item_spatial",
+      0.01,
+      0.3
+    ],
+    [
+      "cv",
+      0.05,
+      1.5
+    ],
+    [
+      "p_miss",
+      0.0,
+      0.3
+    ],
+    [
+      "t0_yes",
+      0.15,
+      0.6
+    ],
+    [
+      "t0_no",
+      0.15,
+      0.6
+    ],
+    [
+      "c",
+      2.0,
+      60.0
+    ],
+    [
+      "m",
+      0.0,
+      0.05
+    ]
+  ],
+  "defaults": {
+    "t_feature": 0.05,
+    "t_item_conjunction": 0.03,
+    "t_item_spatial": 0.08,
+    "cv": 0.5,
+    "p_miss": 0.02,
+    "t0_yes": 0.35,
+    "t0_no": 0.35,
+    "c": 12.0,
+    "m": 0.01
+  },
+  "fit_split": "train",
+  "seed": 1001,
+  "n_per_cell": 200,
+  "maxiter": 60,
+  "popsize": 8,
+  "values": {
+    "t_feature": 0.015061130852062843,
+    "t_item_conjunction": 0.022794458288964564,
+    "t_item_spatial": 0.11624402921464319,
+    "cv": 1.2284316630078547,
+    "p_miss": 0.023749739319759128,
+    "t0_yes": 0.3194707846459651,
+    "t0_no": 0.3391564549164743,
+    "c": 10.18278779071979,
+    "m": 0.007980193574982666
+  },
+  "cost": 70.39719670150895,
+  "evaluations": 4392,
+  "fitted": true,
+  "optimizer_message": "Maximum number of iterations has been exceeded.",
+  "seconds": 33.09952380001778
+}

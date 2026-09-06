@@ -2,6 +2,7 @@
 actr7.x/
 actr7.x.zip
 data/human/
+data/Human-data-paper/
 data/model/
 *.fasl
 __pycache__/

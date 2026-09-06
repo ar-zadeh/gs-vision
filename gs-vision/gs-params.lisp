@@ -38,6 +38,7 @@ The key is the visicon entry and not the chunk name because
   (prior 0.0)
   salience              ; nil unless the feature supplied one
   (priority 0.0)
+  (guidance 0.0)         ; priority without noise or eccentricity
   (td 0.0))
 
 (defstruct (gs-diff (:conc-name gsd-))
@@ -85,6 +86,9 @@ The key is the visicon entry and not the chunk name because
    (n-fixations    :accessor n-fixations    :initform 0)
    (fixation-log   :accessor fixation-log   :initform nil)  ; newest first
    (saccade-flight :accessor saccade-flight :initform nil)
+   (eye-moving     :accessor eye-moving :initform nil)
+   (delivery-event :accessor delivery-event :initform nil)
+   (event-log      :accessor event-log :initform nil)
    ;; --- scheduled events -------------------------------------------
    (select-event   :accessor select-event   :initform nil)
    (fix-event      :accessor fix-event      :initform nil)
@@ -100,8 +104,19 @@ The key is the visicon entry and not the chunk name because
    (select-interval :accessor select-interval :initform 50)   ; ms
    (diffuser-capacity :accessor diffuser-capacity :initform 5)
    (choice-beta    :accessor choice-beta    :initform 4.0)
+   (saccade-margin :accessor saccade-margin :initform 0.25)
+   (saccade-proximity :accessor saccade-proximity :initform 0.10)
+   (revised-saccades :accessor revised-saccades :initform t)
+   (quit-noise-free :accessor quit-noise-free :initform t)
+   (recognition-extra :accessor recognition-extra :initform nil)
    (id-drift       :accessor id-drift       :initform 0.25)
    (id-threshold   :accessor id-threshold   :initform 0.03)
+   (id-sigma       :accessor id-sigma       :initform 0.1)
+   (id-error       :accessor id-error       :initform 0.0)
+   (onset-latency  :accessor onset-latency  :initform 0)      ; ms
+   (adaptive-quit-delta :accessor adaptive-quit-delta :initform nil)
+   (explore-proximity :accessor explore-proximity :initform nil)
+   (saccade-trigger :accessor saccade-trigger :initform 0.0)   ; deg, 0 = off
    (quit-delta     :accessor quit-delta     :initform 0.02)
    (gs-memory      :accessor gs-memory      :initform 4)
    (attn-fvf       :accessor attn-fvf       :initform 8.0)
@@ -143,6 +158,7 @@ The key is the visicon entry and not the chunk name because
 
 (defun gs-posint-p (x) (and (integerp x) (plusp x)))
 (defun gs-nonneg-int-p (x) (and (integerp x) (>= x 0)))
+(defun gs-probability-p (x) (and (numberp x) (<= 0 x 1)))
 
 ;;; ------------------------------------------------------------------
 ;;; Parameter list
@@ -167,12 +183,45 @@ The key is the visicon entry and not the chunk name because
    (define-parameter :gs-choice-beta
      :valid-test 'nonneg :default-value 4.0 :warning "a non-negative number"
      :documentation "Luce temperature applied to priorities centred on their mean.")
+   (define-parameter :gs-saccade-margin
+     :valid-test 'nonneg :default-value 0.25 :warning "a non-negative number"
+     :documentation "Noise-free guidance advantage needed to prefer a distant item.")
+   (define-parameter :gs-saccade-proximity
+     :valid-test 'nonneg :default-value 0.10 :warning "a non-negative number"
+     :documentation "Saccade destination guidance penalty per degree.")
+   (define-parameter :gs-revised-saccades
+     :valid-test 'tornil :default-value t :warning "T or NIL"
+     :documentation "Use guidance and proximity for eye movements; NIL is the historical ablation.")
+   (define-parameter :gs-quit-noise-free
+     :valid-test 'tornil :default-value t :warning "T or NIL"
+     :documentation "Use noise-free guidance with beta capped at 4 for quit weights.")
+   (define-parameter :gs-recognition-extra
+     :valid-test 'tornil :default-value nil :warning "T or NIL"
+     :documentation "Historical extra EMMA recognition delay, for fixed-parameter ablations only.")
    (define-parameter :gs-id-drift
      :valid-test 'posnum :default-value 0.25 :warning "a positive number"
      :documentation "Drift rate (mu) of the Wald identification time.")
    (define-parameter :gs-id-threshold
      :valid-test 'posnum :default-value 0.03 :warning "a positive number"
-     :documentation "Threshold (theta) of the Wald identification time; sigma is fixed at 0.1.")
+     :documentation "Threshold (theta) of the Wald identification time.")
+   (define-parameter :gs-id-sigma
+     :valid-test 'posnum :default-value 0.1 :warning "a positive number"
+     :documentation "Noise (sigma) of the Wald identification time; the shape is theta^2/sigma^2.")
+   (define-parameter :gs-id-error
+     :valid-test 'gs-probability-p :default-value 0.0 :warning "a number between 0 and 1"
+     :documentation "Probability that an identification decision flips: a target is rejected or a distractor is accepted.")
+   (define-parameter :gs-onset-latency
+     :valid-test 'nonneg :default-value 0.0 :warning "a non-negative number"
+     :documentation "Seconds after a search request before the first covert selection.")
+   (define-parameter :gs-adaptive-quit-delta
+     :valid-test 'tornil :default-value nil :warning "T or NIL"
+     :documentation "Divide the competitive quit increment by the adaptive threshold scale, so feedback controls both quit rules.")
+   (define-parameter :gs-explore-proximity
+     :valid-test 'tornil :default-value nil :warning "T or NIL"
+     :documentation "When nothing is selectable inside :gs-attn-fvf, choose the saccade destination by guidance minus distance rather than guidance alone.")
+   (define-parameter :gs-saccade-trigger
+     :valid-test 'nonneg :default-value 0.0 :warning "a non-negative number"
+     :documentation "Degrees; when positive, a saccade is requested as soon as the nearest selectable item is farther than this, while covert selection continues.")
    (define-parameter :gs-quit-delta
      :valid-test 'nonneg :default-value 0.02 :warning "a non-negative number"
      :documentation "Increment of the Competitive Guided Search quit weight per rejection.")
@@ -253,7 +302,11 @@ The key is the visicon entry and not the chunk name because
     (let ((name (gs-param-name param)))
       (if (not (member name '(:gs-enabled :gs-guiding-features :gs-select-interval
                               :gs-diffuser-capacity :gs-choice-beta :gs-id-drift
-                              :gs-id-threshold :gs-quit-delta :gs-memory
+                              :gs-saccade-margin :gs-saccade-proximity :gs-revised-saccades
+                              :gs-quit-noise-free :gs-recognition-extra
+                              :gs-id-threshold :gs-id-sigma :gs-id-error :gs-onset-latency
+                              :gs-adaptive-quit-delta :gs-explore-proximity :gs-saccade-trigger
+                              :gs-quit-delta :gs-memory
                               :gs-attn-fvf :gs-explore-fvf :gs-max-fixation
                               :gs-iconic-span :gs-acuity-theta :gs-acuity-sigma
                               :gs-w-bu :gs-w-td :gs-w-h :gs-w-v :gs-w-s :gs-w-e
@@ -271,8 +324,20 @@ The key is the visicon entry and not the chunk name because
                    (setf (select-interval vis-mod) (safe-seconds->ms v 'sgp)) v)
                   (:gs-diffuser-capacity (setf (diffuser-capacity vis-mod) v))
                   (:gs-choice-beta (setf (choice-beta vis-mod) v))
+                  (:gs-saccade-margin (setf (saccade-margin vis-mod) v))
+                  (:gs-saccade-proximity (setf (saccade-proximity vis-mod) v))
+                  (:gs-revised-saccades (setf (revised-saccades vis-mod) v))
+                  (:gs-quit-noise-free (setf (quit-noise-free vis-mod) v))
+                  (:gs-recognition-extra (setf (recognition-extra vis-mod) v))
                   (:gs-id-drift (setf (id-drift vis-mod) v))
                   (:gs-id-threshold (setf (id-threshold vis-mod) v))
+                  (:gs-id-sigma (setf (id-sigma vis-mod) v))
+                  (:gs-id-error (setf (id-error vis-mod) v))
+                  (:gs-onset-latency
+                   (setf (onset-latency vis-mod) (safe-seconds->ms v 'sgp)) v)
+                  (:gs-adaptive-quit-delta (setf (adaptive-quit-delta vis-mod) v))
+                  (:gs-explore-proximity (setf (explore-proximity vis-mod) v))
+                  (:gs-saccade-trigger (setf (saccade-trigger vis-mod) v))
                   (:gs-quit-delta (setf (quit-delta vis-mod) v))
                   (:gs-memory (setf (gs-memory vis-mod) v))
                   (:gs-attn-fvf (setf (attn-fvf vis-mod) v))
@@ -292,7 +357,7 @@ The key is the visicon entry and not the chunk name because
                   (:gs-noise (setf (gs-noise vis-mod) v))
                   (:gs-priming-tau (setf (priming-tau vis-mod) v))
                   (:gs-qt-init (setf (qt-init vis-mod) v)
-                   (unless (quit-threshold vis-mod)
+                   (unless (or (search-active vis-mod) (feedback-log vis-mod))
                      (setf (quit-threshold vis-mod) v))
                    v)
                   (:gs-qt-step (setf (qt-step vis-mod) v))
@@ -306,8 +371,19 @@ The key is the visicon entry and not the chunk name because
               (:gs-select-interval (ms->seconds (select-interval vis-mod)))
               (:gs-diffuser-capacity (diffuser-capacity vis-mod))
               (:gs-choice-beta (choice-beta vis-mod))
+              (:gs-saccade-margin (saccade-margin vis-mod))
+              (:gs-saccade-proximity (saccade-proximity vis-mod))
+              (:gs-revised-saccades (revised-saccades vis-mod))
+              (:gs-quit-noise-free (quit-noise-free vis-mod))
+              (:gs-recognition-extra (recognition-extra vis-mod))
               (:gs-id-drift (id-drift vis-mod))
               (:gs-id-threshold (id-threshold vis-mod))
+              (:gs-id-sigma (id-sigma vis-mod))
+              (:gs-id-error (id-error vis-mod))
+              (:gs-onset-latency (ms->seconds (onset-latency vis-mod)))
+              (:gs-adaptive-quit-delta (adaptive-quit-delta vis-mod))
+              (:gs-explore-proximity (explore-proximity vis-mod))
+              (:gs-saccade-trigger (saccade-trigger vis-mod))
               (:gs-quit-delta (quit-delta vis-mod))
               (:gs-memory (gs-memory vis-mod))
               (:gs-attn-fvf (attn-fvf vis-mod))

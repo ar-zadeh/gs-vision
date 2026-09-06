@@ -40,9 +40,8 @@ QUANTILES = (0.1, 0.3, 0.5, 0.7, 0.9)
 
 def load_trials(path) -> pd.DataFrame:
     df = pd.read_csv(path)
-    df = df[df["rt_ms"].notna()].copy()
     df["rt_ms"] = df["rt_ms"].astype(float)
-    df["correct"] = df["correct"].astype(int).astype(bool)
+    df["correct"] = df["correct"].fillna(0).astype(int).astype(bool)
     df["target_present"] = df["target_present"].astype(int).astype(bool)
     return df
 
@@ -361,8 +360,9 @@ def main() -> int:
         delta = {}
         if args.compare_params:
             key = args.compare_key or args.compare
-            fitted = json.loads(pathlib.Path(args.compare_params).read_text())
-            delta = fitted.get(key, {}).get("delta", {})
+            from harness.parameters import load
+            from dataclasses import asdict
+            delta = asdict(load(args.compare_params, key))
         cmp = compare_lisp_python(args.trials, args.compare, delta,
                                   n_per_cell=args.n_per_cell, seed=args.seed)
         print("\nLisp vs Python mirror, correct-trial cell means (ms)")

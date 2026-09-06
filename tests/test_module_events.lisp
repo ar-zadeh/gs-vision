@@ -115,7 +115,9 @@
                 (:gs-acuity-sigma 0.5) (:gs-w-bu 0.5) (:gs-w-td 1.0) (:gs-w-h 0.3)
                 (:gs-w-v 0.0) (:gs-w-s 1.0) (:gs-w-e 0.02) (:gs-noise 0.2)
                 (:gs-priming-tau 10.0) (:gs-qt-init 1.0) (:gs-qt-step 0.05)
-                (:gs-error-goal 0.08) (:gs-feedback-window 50) (:gs-log-fixations t)))
+                (:gs-error-goal 0.08) (:gs-feedback-window 50) (:gs-log-fixations t)
+                (:gs-id-sigma 0.1) (:gs-id-error 0.0) (:gs-onset-latency 0.0)
+                (:gs-adaptive-quit-delta nil) (:gs-explore-proximity nil) (:gs-saccade-trigger 0.0)))
   (destructuring-bind (name want) spec
     (let ((got (car (no-output (sgp-fct (list name))))))
       (check (format nil "~a defaults to ~a" name want)
@@ -371,6 +373,63 @@
          (eq (search-result v) 'none) (search-result v)))
 
 ;;; ------------------------------------------------------------------
+;;; Post-freeze refit parameters
+;;; ------------------------------------------------------------------
+
+(format t "~%== onset latency delays the first selection ==~%")
+(new-test-model)
+(sgp :gs-onset-latency 0.1)
+(let* ((v (run-search (spatial-display 12 nil) '(shape two)))
+       (log (reverse (event-log v)))
+       (request (first (find "request" log :key #'second :test #'string=)))
+       (select (first (find "select" log :key #'second :test #'string=))))
+  (check "the first selection waits for the onset latency plus one interval"
+         (and request select (= (- select request) 150)) (and request select (- select request)))
+  (check "the search still ends" (member (search-result v) '(found failed)) (search-result v)))
+(sgp :gs-onset-latency 0.0)
+
+(format t "~%== identification error is a second decision boundary ==~%")
+(new-test-model)
+(sgp :gs-id-error 1.0)
+(let ((v (run-search (feature-display 12 nil) '(color red))))
+  (check "with a certain decision error an absent display yields a false alarm"
+         (eq (search-result v) 'found) (search-result v))
+  (check "the accepted chunk is a green distractor"
+         (let ((c (buffer-read 'visual))) (and c (eq (chunk-slot-value-fct c 'color) 'green)))))
+(sgp :gs-id-error 0.0)
+
+(format t "~%== the competitive increment follows the adaptive scale ==~%")
+(new-test-model)
+(sgp :gs-adaptive-quit-delta t :gs-qt-init 4.0 :gs-quit-delta 0.02)
+(let ((v (run-search (spatial-display 12 nil) '(shape two) :stop 'cgs)))
+  (check "each rejection adds quit-delta divided by the adaptive scale"
+         (close-to (quit-weight v) (* (rejections v) (/ 0.02 4.0)) 1e-6)
+         (list (quit-weight v) (rejections v))))
+(sgp :gs-adaptive-quit-delta nil :gs-qt-init 1.0)
+
+(format t "~%== distance-penalised exploration ==~%")
+(new-test-model)
+(sgp :gs-explore-proximity t :gs-attn-fvf 2.0)
+(let ((v (run-search (spatial-display 12 nil) '(shape two))))
+  (check "with a tiny attentional field the search still runs and quits"
+         (member (quit-reason v) '(cgs threshold no-candidate)) (quit-reason v))
+  (check "the first saccade goes to the nearest item, 6.4 degrees away"
+         (let ((log (gs-fixation-log-command)))
+           (and (>= (length log) 2)
+                (< (abs (- (pm-pixels-to-angle
+                            (sqrt (+ (expt (- (second (second log)) *cx*) 2)
+                                     (expt (- (third (second log)) *cy*) 2))))
+                           6.36))
+                   1.5)))
+         (let ((log (gs-fixation-log-command)))
+           (when (>= (length log) 2)
+             (pm-pixels-to-angle (sqrt (+ (expt (- (second (second log)) *cx*) 2)
+                                          (expt (- (third (second log)) *cy*) 2))))))))
+(sgp :gs-explore-proximity nil :gs-attn-fvf 8.0)
+
+;;; ------------------------------------------------------------------
+
+(load (merge-pathnames "repair_events.lisp" *load-truename*))
 
 (format t "~%~%========================================~%")
 (format t "passed ~d, failed ~d~%" *pass* *fail*)

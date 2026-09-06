@@ -1,0 +1,100 @@
+{
+  "source": "https://osf.io/qwm6r/ (Results/Exp1Data.mat)",
+  "sha256": "f867d5be91e70eaed6228dfb5fd9dd1fb8849e0692dead96809a5d8437f8193a",
+  "raw_fixations": 146956,
+  "raw_participants": 19,
+  "included_participants": [
+    1,
+    4,
+    5,
+    6,
+    7,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22
+  ],
+  "included_fixations": 141737,
+  "participant_selection": "author's ufov_analyze_Exp1.m Os list",
+  "duplicate_trial_fixation_without_target_episode": 14,
+  "duplicate_full_records": 0,
+  "episode_identity": [
+    "Subj",
+    "itrial",
+    "nTarget"
+  ],
+  "geometry": {
+    "screen_pixels": [
+      1920,
+      1080
+    ],
+    "pixels_per_degree": 47.76,
+    "item_degrees": [
+      1,
+      1
+    ],
+    "grid": [
+      10,
+      8
+    ],
+    "grid_spacing_pixels": 120,
+    "horizontal_center_span_degrees": 22.613065326633166,
+    "vertical_center_span_degrees": 17.587939698492463
+  },
+  "task": "continuous T-among-L foraging; target always present; click response",
+  "window": "source target episode including pre-click fixations; no stimulus-onset timestamps",
+  "human_means": {
+    "episodes": 492.94444444444446,
+    "fixations": 7874.277777777777,
+    "mean_count": 15.979946413198187,
+    "duration_ms": 249.0920200101258,
+    "amplitude_deg": 5.40600305126385,
+    "refixation_rate": 0.09500222283226849
+  },
+  "scanpath_split": {
+    "seed": 901,
+    "first_half": [
+      1,
+      5,
+      7,
+      11,
+      12,
+      13,
+      16,
+      18,
+      20
+    ],
+    "second_half": [
+      4,
+      6,
+      10,
+      14,
+      15,
+      17,
+      19,
+      21,
+      22
+    ],
+    "matched_conditions": 100,
+    "matching": "target coordinates and initial-gaze 120px bin; rotations unobserved"
+  },
+  "human_similarity": {
+    "scanmatch": 0.4256664993238952,
+    "sequence_score": 0.17417324912880094,
+    "vector": 0.9491075097310122,
+    "direction": 0.6841468472982758,
+    "length": 0.9494059179713662,
+    "position": 0.8405191242688856,
+    "duration": 0.6776811192643808
+  },
+  "model_comparison": "not computed: keypress benchmark ends at visual result; continuous foraging uses a click and uncentered starts. Source item rotations and exact onset/result timestamps are absent. Human split-half values are conditional descriptive consistency, not a ceiling for the unmatched benchmark."
+}

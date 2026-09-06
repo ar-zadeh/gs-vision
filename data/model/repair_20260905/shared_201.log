@@ -1,0 +1,6 @@
+differential_evolution step 1: f(x)= 213.3735156528114
+differential_evolution step 2: f(x)= 181.4082670320366
+differential_evolution step 3: f(x)= 181.4082670320366
+differential_evolution step 4: f(x)= 179.98756689313223
+DE best: {'select_interval': 0.027480915836418998, 'id_threshold': 0.0223703621815062, 'quit_delta': 0.03320905063354566, 'memory': 11, 'attn_fvf': 10.98232973272604, 'w_bu': 1.0491781257842456} cost 179.98756689313223
+wrote data\model\repair_20260905\shared_201.json

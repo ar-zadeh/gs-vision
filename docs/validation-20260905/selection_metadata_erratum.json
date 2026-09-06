@@ -1,0 +1,20 @@
+{
+  "task_specific_overrides": {
+    "feature": [],
+    "conjunction": [
+      "select_interval",
+      "diffuser_capacity",
+      "choice_beta",
+      "id_threshold",
+      "quit_delta",
+      "memory",
+      "attn_fvf",
+      "max_fixation",
+      "w_bu",
+      "w_e",
+      "noise"
+    ],
+    "spatial": []
+  },
+  "note": "Frozen conjunction extra_free_parameters=6 incorrectly described a historical candidate. It has 11 settings differing from shared and zero newly fitted settings in that candidate. New task-specific DE searches each fit six settings. Original frozen metadata is preserved."
+}

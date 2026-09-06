@@ -1,0 +1,31 @@
+validation defaults 443.50243907350983
+validation historical_shared 188.50448533263327
+validation shared_201 180.96678506613944
+validation shared_202 240.49542038143173
+differential_evolution step 1: f(x)= 74.79449617718657
+differential_evolution step 2: f(x)= 74.79449617718657
+differential_evolution step 3: f(x)= 68.99130291064989
+differential_evolution step 4: f(x)= 68.99130291064989
+differential_evolution step 1: f(x)= 84.47030748586201
+differential_evolution step 2: f(x)= 84.47030748586201
+differential_evolution step 3: f(x)= 77.9572215614876
+differential_evolution step 4: f(x)= 70.42490847850945
+selected feature shared {'shared': 94.68530947705965, 'historical': 155.35545337423656, '221': 106.29556589842332, '222': 128.13242362484385}
+differential_evolution step 1: f(x)= 179.82638544155625
+differential_evolution step 2: f(x)= 179.82638544155625
+differential_evolution step 3: f(x)= 172.80194157195967
+differential_evolution step 4: f(x)= 172.80194157195967
+differential_evolution step 1: f(x)= 156.33495559679045
+differential_evolution step 2: f(x)= 156.33495559679045
+differential_evolution step 3: f(x)= 156.33495559679045
+differential_evolution step 4: f(x)= 156.33495559679045
+selected conjunction historical {'shared': 175.90727864947627, 'historical': 127.44829703326894, '221': 201.86632007995698, '222': 164.56911640521815}
+differential_evolution step 1: f(x)= 178.6694237021282
+differential_evolution step 2: f(x)= 178.6694237021282
+differential_evolution step 3: f(x)= 178.6694237021282
+differential_evolution step 4: f(x)= 150.18682627695713
+differential_evolution step 1: f(x)= 239.07435099284024
+differential_evolution step 2: f(x)= 159.6987353835075
+differential_evolution step 3: f(x)= 159.6987353835075
+differential_evolution step 4: f(x)= 159.6987353835075
+selected spatial shared {'shared': 249.94878757311892, 'historical': 270.24932183030796, '221': 346.71569413658483, '222': 355.2132042353941}

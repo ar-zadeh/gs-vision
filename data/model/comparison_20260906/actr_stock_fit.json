@@ -1,0 +1,70 @@
+{
+  "model": "actr_stock_fit",
+  "title": "ACT-R stock vision module, timing fitted (mirror)",
+  "n_fitted": 6,
+  "per_task": false,
+  "bounds": [
+    [
+      "attn_latency",
+      0.0,
+      0.3
+    ],
+    [
+      "productions",
+      2.0,
+      3.0
+    ],
+    [
+      "finsts",
+      4.0,
+      20.0
+    ],
+    [
+      "t0_yes",
+      0.1,
+      0.6
+    ],
+    [
+      "t0_no",
+      0.1,
+      0.6
+    ],
+    [
+      "c",
+      2.0,
+      60.0
+    ]
+  ],
+  "defaults": {
+    "attn_latency": 0.085,
+    "productions": 3.0,
+    "finsts": 20.0,
+    "count_strategy": 0.0,
+    "t0_yes": 0.3,
+    "t0_no": 0.3,
+    "measured_extras": 0.0,
+    "c": 12.0,
+    "m": 0.0
+  },
+  "fit_split": "train",
+  "seed": 1001,
+  "n_per_cell": 200,
+  "maxiter": 60,
+  "popsize": 8,
+  "values": {
+    "attn_latency": 0.006439846176777175,
+    "productions": 2.25108395587742,
+    "finsts": 19.408992117001326,
+    "count_strategy": 0.0,
+    "t0_yes": 0.21652286649388547,
+    "t0_no": 0.2737714798898706,
+    "measured_extras": 0.0,
+    "c": 9.984869400516683,
+    "m": 0.0
+  },
+  "cost": 200.19831443210182,
+  "evaluations": 1152,
+  "fitted": true,
+  "optimizer_message": "Optimization terminated successfully.",
+  "seconds": 16.76547089999076
+}

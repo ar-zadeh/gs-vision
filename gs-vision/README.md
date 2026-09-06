@@ -1,6 +1,6 @@
 # gs-vision
 
-A replacement vision module for ACT-R 7.31.4 that searches the way people do:
+A replacement vision module for ACT-R 7.31.4 that models visual search:
 Guided Search 6 for the architecture, Competitive Guided Search for the
 selection, identification and quitting arithmetic, PAAV for acuity and iconic
 memory, EMMA for eye movements.
@@ -11,6 +11,8 @@ the Environment and EMMA all keep working, and every existing model runs
 unchanged.
 
 ## Loading
+
+Load the module before creating a model.
 
 ```
 sbcl --load G:/VisualSearchModeling/gs-vision/load-gs-vision.lisp
@@ -42,6 +44,8 @@ three middle files use its accessors and are loaded first;
 time and that needs the parameter list.
 
 ## What a model writes
+
+Use the following requests and queries in productions.
 
 ```lisp
 ;; Guided location request.  Slot values are channel constraints, not equality
@@ -98,10 +102,15 @@ efficient and 2-vs-5 inefficient with a single set of mechanisms.
 
 ## Commands
 
+These commands expose trial control and diagnostics.
+
 | Command | Returns |
 |---|---|
 | `gs-search-stats` | `(fixations rejections elapsed-ms quit-reason)` for the last search |
-| `gs-fixation-log` | oldest-first list of `(time-ms x y duration-ms)` |
+| `gs-fixation-log` | oldest-first stationary intervals `(time-ms x y duration-ms)` |
+| `gs-event-log` | timestamped requests, selections, decisions, movement, and results |
+| `gs-benchmark-gaze` | place an untimed fixation cross gaze at `x y`; retain learning |
+| `gs-cancel-search` | close a timeout and preserve its diagnostics |
 | `gs-reset-search` | clears the per-trial state and frees the module; keeps the adaptive state |
 | `gs-state` | `(quit-threshold prevalence n-feedbacks)` |
 | `gs-quit-lisp` | exits SBCL (defined by `load-gs-vision.lisp`) |
@@ -129,8 +138,9 @@ GS-FEEDBACK TN qt 0.950 prevalence 0.50
 
 ## Parameters
 
-Defaults are the handoff's section 6 values; `tests/test_module_events.lisp`
-asserts every one of them.
+Original numeric defaults are retained; the repair adds the policy settings
+below. Fixed-parameter ablations did not justify globally promoting bottom-up
+weight 3.0 or threshold step 0.005. See [the results](../docs/RESULTS.md).
 
 | Name | Default | Notes |
 |---|---|---|
@@ -138,9 +148,20 @@ asserts every one of them.
 | `:gs-guiding-features` | `(color orient size lum)` | everything else is identification-only |
 | `:gs-select-interval` | 0.050 | seconds between covert selections |
 | `:gs-diffuser-capacity` | 5 | items identified at once |
-| `:gs-choice-beta` | 4.0 | Luce temperature on centred priorities |
+| `:gs-choice-beta` | 4.0 | Luce temperature on centred covert priorities |
+| `:gs-saccade-margin` | 0.25 | required distant guidance advantage, in priority units |
+| `:gs-saccade-proximity` | 0.10 | destination penalty in priority units per degree |
+| `:gs-revised-saccades` | `t` | guidance/margin/distance policy; `nil` is the old-policy ablation |
+| `:gs-quit-noise-free` | `t` | guidance-only quit weights with beta capped at four |
+| `:gs-recognition-extra` | `nil` | `t` restores the historical extra delay for ablations |
 | `:gs-id-drift` | 0.25 | Wald mu; mean identification time is theta/mu |
-| `:gs-id-threshold` | 0.03 | Wald theta; sigma is fixed at 0.1 |
+| `:gs-id-threshold` | 0.03 | Wald theta |
+| `:gs-id-sigma` | 0.1 | Wald noise; the shape is theta squared over sigma squared, so the CV is sigma / sqrt(theta mu) |
+| `:gs-id-error` | 0.0 | probability that an identification decision flips (a rejected target or an accepted distractor) |
+| `:gs-onset-latency` | 0.0 | seconds after the request before the first covert selection |
+| `:gs-adaptive-quit-delta` | `nil` | `t` divides the competitive quit increment by the adaptive threshold scale, so feedback controls both quit rules |
+| `:gs-explore-proximity` | `nil` | `t` chooses the saccade destination by guidance minus distance when nothing is selectable inside `:gs-attn-fvf` |
+| `:gs-saccade-trigger` | 0.0 | degrees; when positive, the eye starts moving as soon as the nearest selectable item is farther than this, while covert selection continues |
 | `:gs-quit-delta` | 0.02 | competitive quit weight per rejection |
 | `:gs-memory` | 4 | inhibition-of-return ring size |
 | `:gs-attn-fvf` | 8.0 | degrees within which an item can be selected covertly |
@@ -165,53 +186,39 @@ question (handoff section 12, decision 4).
 
 ## Where this module reads the handoff differently
 
-Six places. The Python mirror `reference/gs_hybrid.py` makes the same six
-choices, so the two implementations stay comparable.
+These are explicit model revisions, mirrored in `reference/gs_hybrid.py`.
 
-1. **The adaptive quitting threshold is a persistent unitless scale**, and the
-   per-trial threshold is that scale times the effective set size. Section 5.6
-   describes it as a value "in units of rejections" whose step also scales with
-   the effective set size, which drifts whenever the set size changes between
-   trials. The scale form is algebraically the same at fixed set size, and it
-   is what the GS6 MATLAB does.
+1. The adaptive threshold is a persistent scale multiplied by effective set
+   size. Reaching it pauses new selection and drains outstanding evidence.
+2. Competitive quit weights cover every unresolved item, including diffuser
+   items. They use noise-free, eccentricity-free guidance and beta capped at
+   four. Covert choice still uses the configured beta and noisy priorities.
+3. Peripheral guidance with an explicit margin triggers a saccade. A separate
+   proximity penalty chooses destinations. Useful near work can continue in
+   preparation; new selection stops during execution. Oldest pending
+   foveation has priority. Strongly guided far targets suppress weaker near
+   work that could otherwise exhaust an effective set size of one.
+4. A dead end quits only when the diffuser is empty. Identity completion is
+   distinct from the decision to stop seeking new evidence.
+5. Wald completes recognition when required features are available. The
+   normal Wald variate uses Box-Muller in Lisp. No second full encoding is
+   charged; stock ACT-R constructs and attends the object at the same time.
+   A disappearing target or cancellation cannot deliver a stale object.
+6. A guided location request takes the maximum priority; iconic location
+   entries survive feature decay and retain uncertainty contributions.
 
-2. **The competitive quit denominator runs over every item not yet rejected**,
-   including items being identified. The literal reading of section 5.6 uses
-   the eligibility filter of section 5.4 step 1, which excludes the diffuser
-   and everything outside the attentional field; that empties the denominator
-   mid-search and makes `p(quit)` exactly 1. With the literal reading the
-   spatial-configuration miss rate at set size 3 is over 40 percent.
+The first selection interval is retained as selection cost. Benchmark gaze
+placement is explicit, untimed experiment setup; generic search can continue
+from current gaze. Preparation history resets at the benchmark fixation
+cross. Fixation records include initial/final intervals, omit execution,
+and end at visual result. A peripheral recognition never teleports gaze.
 
-3. **Selection consults the priority map globally.** When the winner is outside
-   the attentional field the module looks at it instead of covertly selecting a
-   nearby loser. Section 5.4 step 1 restricts covert selection to the
-   attentional field, and section 5.6's own worked example requires feature
-   search to find the target before anything is rejected; on the 22.5 degree
-   benchmark display the target is outside the 8 degree field on 60 percent of
-   trials, so the two cannot both hold. The field keeps its meaning; what
-   changes is that the winner of the competition is always what happens next.
-
-4. **A dead end is only a dead end when the diffuser is empty.** Section 5.5
-   ends "if still none, quit"; items still being identified are not none.
-
-5. **A guided location request takes the maximum priority, not a Luce sample.**
-   Section 5.7 says it returns the highest-priority matching location. The
-   noise term keeps it stochastic; the soft competition of section 5.4 belongs
-   to covert selection, and with it the target wins only 87 percent of feature
-   trials, under the 95 percent phase 3 asks for.
-
-6. **The location entry in iconic memory outlives its features.** Features
-   expire after `:gs-iconic-span`; the entry stays while the item is in the
-   visicon, so an item whose features have all decayed still contributes the
-   0.5 "unknown" term to the top-down map rather than vanishing.
-
-Two smaller corrections to the handoff's summary of ACT-R, both taken from the
-source: EMMA counts two saccade directions as the same within pi/4, not 90
-degrees (`direction=`, `core-modules/motor.lisp` line 894); and EMMA's
-peripheral encoding estimate is not its encoding time, because
-`complete-eye-move` restarts the encoding at the fovea keeping only the
-remaining proportion. Without the second half a covert hit at 12 degrees would
-cost 1.7 seconds.
+The batch parameter schema separates vision, Python response approximation,
+and trial protocol. Complete configurations, units, requested settings,
+ACT-R readback, and effective hashes are recorded. The measured keyboard
+response approximation is fixed at 160/260/310 ms for repeat/switch/first
+responses; it is not a fitted vision parameter. Times held as integer Lisp
+milliseconds are normalized before Python simulation and serialization.
 
 ## Backward compatibility
 

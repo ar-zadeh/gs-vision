@@ -1,0 +1,428 @@
+................................#|Warning: Cannot require an extra when there is a current model. |#
+
+
+F.                                       [100%]
+================================== FAILURES ===================================
+____________________ test_complete_transport_in_real_actr _____________________
+
+tmp_path = WindowsPath('C:/Users/ITXPC/AppData/Local/Temp/pytest-of-ITXPC/pytest-3/test_complete_transport_in_rea0')
+
+    def test_complete_transport_in_real_actr(tmp_path):
+        from harness.run_batch import ACTRSession, MODEL_FILE, run_batch
+        p = replace(DEFAULTS, w_bu=3., id_drift=.35, id_threshold=.055,
+                    qt_step=.005, qt_init=1.7, quit_delta=.08,
+                    saccade_margin=.4, saccade_proximity=.2, select_interval=.0274)
+        assert p.select_interval == .027
+        with ACTRSession(log_path=tmp_path / "actr.log") as session:
+            session.actr.load_act_r_model(MODEL_FILE)
+>           actual = apply(session.actr, lisp_values(p))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_validation.py:157: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+actr = <module 'actr' from 'G:\\VisualSearchModeling\\actr7.x\\tutorial\\python\\actr.py'>
+requested = {':gs-guiding-features': ['color', 'orient', 'size', 'lum'], ':gs-select-interval': 0.027, ':gs-diffuser-capacity': 5, ':gs-choice-beta': 4.0, ...}
+
+    def apply(actr, requested):
+        """Check every readback; requested values alone do not establish acceptance."""
+        for name, value in requested.items():
+            actr.set_parameter_value(name, value)
+        effective = {name: actr.get_parameter_value(name) for name in requested}
+        for name, value in requested.items():
+            if not equivalent(effective[name], value):
+>               raise ValueError(f"ACT-R rejected {name}: requested {value!r}, got {effective[name]!r}")
+E               ValueError: ACT-R rejected :gs-guiding-features: requested ['color', 'orient', 'size', 'lum'], got ':BAD-PARAMETER-NAME'
+
+harness\parameters.py:132: ValueError
+---------------------------- Captured stdout call -----------------------------
+ACT-R connection has been started.
+#|Warning: Cannot create a new module when there are models defined. |#
+
+Error evaluating
+ load-act-r-model : Error #<SIMPLE-ERROR Error #<TYPE-ERROR The value
+                     :BAD-PARAMETER-NAME
+                   is not of type
+                     SEQUENCE> while trying to load file "G:/VisualSearchModeling/models/search-model.lisp"> occurred while trying to evaluate command "load-act-r-model" with parameters ("G:/VisualSearchModeling/models/search-model.lisp")
+#|Warning: Parameter :GS-GUIDING-FEATURES is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-SELECT-INTERVAL is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Parameter :GS-DIFFUSER-CAPACITY is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-CHOICE-BETA is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-SACCADE-MARGIN is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-SACCADE-PROXIMITY is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Parameter :GS-REVISED-SACCADES is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-QUIT-NOISE-FREE is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-RECOGNITION-EXTRA is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-ID-DRIFT is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-ID-THRESHOLD is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-QUIT-DELTA is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-MEMORY is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-ATTN-FVF is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-EXPLORE-FVF is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Parameter :GS-MAX-FIXATION is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-ICONIC-SPAN is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-ACUITY-THETA is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-ACUITY-SIGMA is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-W-BU is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new component when there are models defined. |#
+
+
+#|Warning: Parameter :GS-W-TD is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Parameter :GS-W-H is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-W-V is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-W-S is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-W-E is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new compilation type when there are models defined. |#
+
+
+#|Warning: Parameter :GS-NOISE is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-PRIMING-TAU is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-QT-INIT is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-QT-STEP is not the name of an available parameter |#
+
+
+#|Warning: Parameter :GS-ERROR-GOAL is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new compilation type when there are models defined. |#
+
+
+#|Warning: Parameter :GS-FEEDBACK-WINDOW is not the name of an available parameter |#
+
+
+#|Warning: Parameter :EMMA is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new compilation type when there are models defined. |#
+
+
+#|Warning: Parameter :SACCADE-FEAT-TIME is not the name of an available parameter |#
+
+
+#|Warning: Parameter :SACCADE-INIT-TIME is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new compilation type when there are models defined. |#
+
+
+#|Warning: Parameter :SACCADE-BASE-TIME is not the name of an available parameter |#
+
+
+#|Warning: Parameter :EYE-SACCADE-RATE is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new compilation type when there are models defined. |#
+
+
+#|Warning: Parameter :VISUAL-ENCODING-FACTOR is not the name of an available parameter |#
+
+
+#|Warning: Parameter :VISUAL-ENCODING-EXPONENT is not the name of an available parameter |#
+
+
+#|Warning: Cannot create a new component when there are models defined. |#
+
+
+#|Warning: Parameter :VIS-OBJ-FREQ is not the name of an available parameter |#
+
+
+#|Warning: Invalid parameter name :GS-GUIDING-FEATURES in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-SELECT-INTERVAL in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-DIFFUSER-CAPACITY in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-CHOICE-BETA in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-SACCADE-MARGIN in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-SACCADE-PROXIMITY in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-REVISED-SACCADES in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-QUIT-NOISE-FREE in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-RECOGNITION-EXTRA in call to get-parameter-value. |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Invalid parameter name :GS-ID-DRIFT in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-ID-THRESHOLD in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-QUIT-DELTA in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-MEMORY in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-ATTN-FVF in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-EXPLORE-FVF in call to get-parameter-value. |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Invalid parameter name :GS-MAX-FIXATION in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-ICONIC-SPAN in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-ACUITY-THETA in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-ACUITY-SIGMA in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-W-BU in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-W-TD in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-W-H in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-W-V in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-W-S in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-W-E in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-NOISE in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-PRIMING-TAU in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-QT-INIT in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-QT-STEP in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-ERROR-GOAL in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :GS-FEEDBACK-WINDOW in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :EMMA in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :SACCADE-FEAT-TIME in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :SACCADE-INIT-TIME in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :SACCADE-BASE-TIME in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :EYE-SACCADE-RATE in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :VISUAL-ENCODING-FACTOR in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+
+
+#|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+
+
+Error evaluating gs-quit-lisp : Command "gs-quit-lisp" not found in the table and cannot be executed.
+#|Warning: Cannot create a new component when there are models defined. |#
+
+
+#|Warning: Cannot create a new component when there are models defined. |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: Cannot create a new module when there are models defined. |#
+
+
+#|Warning: default-value does not pass the valid-test |#
+
+
+ACT-R 7 Version Information:
+
+Software          : 7.31.4-<3489:2026-06-10> 
+
+
+=================================================
+
+
+Components
+
+
+-------------------------------------------------
+
+
+AGI             : 6.0        Manager for the AGI windows
+
+
+CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+
+
+HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+
+
+NAMING          : 2.0        Provides new symbol generation for the system.
+
+
+=================================================
+
+
+Modules
+
+
+-------------------------------------------------
+
+
+AUDIO             : 9          A module which gives the model an auditory attentional system
+
+
+BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+
+
+CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+
+
+DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+
+
+DEVICE            : 7.3        The device interface for a model
+
+
+GOAL              : 3.0        The goal module creates new goals for the goal buffer
+
+
+HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+
+
+IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+
+
+MOTOR             : 8.0        Module to provide a model with virtual hands
+
+
+NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+
+
+PRINTING-MODULE   : 2.1        Coordinates output of the model.
+
+
+PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+
+
+RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+
+
+SPEECH            : 7.2        A module to provide a model with the ability to speak
+
+
+VISION            : 11.1       A module to provide a model with a visual attention system
+
+
+
+=========================== short test summary info ===========================
+FAILED tests/test_validation.py::test_complete_transport_in_real_actr - Value...
+1 failed, 33 passed in 15.90s
+#|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+
+

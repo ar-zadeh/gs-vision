@@ -1,499 +1,297 @@
 # Results
 
-Accuracy of the guided-search vision module for ACT-R 7.31.4, against the
-validation plan in section 9 of `IMPLEMENTATION-HANDOFF.md`.
-
-Every number below was produced by the scripts in this repository on
-2026-09-04 and can be regenerated; nothing is transcribed from a paper except
-the human reference values, whose sources are named. The tables at the end are
-emitted by `harness/report.py` from the saved CSVs, so no figure in them is
-typed by hand.
-
-## Summary
-
-| Phase | State |
-|---|---|
-| 0 Setup | done. ACT-R 7.31.4 fingerprint confirmed, venv built, git initialised |
-| 1 Reference sims | done. `reference/test_reference.py`, 18 assertions, passing |
-| 2 Module skeleton | done. `tests/test_backcompat.py`, 15 cases, trace-identical |
-| 3 Priority, acuity, iconic memory | done. Guided requests hit the phase 3 criteria |
-| 4 Diffuser, IOR, quitting | **partly.** Three of six slopes are inside 5 ms/item; the other three miss by 6 to 8 |
-| 5 EMMA saccades | **partly.** Fixation counts and durations are right; saccade amplitudes are 8 to 13 degrees against a 3 to 7 degree target |
-| 6 Adaptive threshold, priming, feedback | **not met.** Both effects exist mechanically but are far below the required size |
-| 7 Fitting and this report | done |
-
-The architecture works: one set of rules produces an efficient feature search,
-an intermediate conjunction search and an inefficient spatial-configuration
-search, with the target-absent to target-present slope ratio between 2.5 and
-3.1 and error rates in the right range. What it does not yet do is match the
-absolute RT intercepts, produce a low-prevalence effect, or produce a
-measurable priming benefit. Those three are diagnosed below rather than hidden.
-
-## Reproducing
-
-```bash
-python harness/fetch_data.py                       # Adam et al. 2021, Tier 1 fallback
-python reference/fetch_gs6_matlab.py               # the GS6 MATLAB gs6_sim.py ports
-pytest reference/test_reference.py                 # reference simulations
-sbcl --non-interactive --load tests/test_module_events.lisp   # 95 module assertions
-pytest tests/test_backcompat.py                    # trace identity with stock ACT-R
-python harness/fit.py --phase1 -n 120 --iters 90   # per-task parameter sets
-python harness/fit.py --shared -n 120 --iters 90   # one set for all three tasks
-python harness/run_batch.py --tasks spatial -n 250 --seeds 1 \
-    --tag phase1_spatial --params data/model/phase1.json --params-key spatial
-python harness/analyze.py data/model/phase1_spatial_seed1_trials.csv \
-    --compare spatial --compare-params data/model/phase1.json
-python harness/report.py                           # every table below
-```
-
-## Where the human numbers come from
-
-**Wolfe, Palmer and Horowitz (2010).** `search.bwh.harvard.edu` did not
-respond on 2026-09-04, exactly as section 9 warned, so the trial-level
-distributions are not available and the Tier 1 targets are the published
-summary slopes for the three tasks: about 1 and 3 ms per item for feature
-search, 20 and 45 for conjunction, 43 and 95 for spatial configuration,
-present and absent. `reference/cgs.py` reproduces them from the Competitive
-Guided Search fits (2-vs-5: 41.7 and 98.5 ms/item; feature: 0.5 and 0.1;
-conjunction: 15.8 and 54.1, over 4000 trials per cell), which is the closest
-independent check available offline. When the server returns, replace
-`TIER1_SLOPES` and `TIER1_INTERCEPTS` in `harness/fit.py` and nothing else
-changes.
-
-**Adam, Patel, Rangan and Serences (2021).** Downloaded from
-https://osf.io/u7wvy/ (CC BY 4.0), 24 participants per experiment. Their
-experiment 1c is the comparison condition: variable distractor colour, so
-nothing can be learned and suppressed, and homogeneous non-targets. Capture
-cost, distractor-present minus distractor-absent RT, by set size 3 to 6:
-**31.7, 32.0, 42.8 and 51.2 ms**, mean 39.4.
-
-**Wu and Wolfe (2022).** Downloaded from https://osf.io/vzg28/, experiment 1,
-22 participants, set sizes 42 and 80. Fixations per trial: 4.68 present and
-10.78 absent at 42, 8.02 and 16.85 at 80.
-
-**Human-human ceilings.** `harness/metrics.py` computes them
-(`human_ceiling`), but no scanpath comparison is reported: see Tier 2 below.
-
-## Tier 1: slopes
-
-The module reaches its slope targets on the two tasks it was fitted on most
-directly and misses on three of the six cells:
-
-| task | target | model | human | error | verdict |
-|---|---|---|---|---|---|
-| feature | present | 1.1 | 1.0 | 0.1 | pass |
-| feature | absent | 9.9 | 3.0 | 6.9 | miss |
-| conjunction | present | 15.6 | 20.0 | 4.4 | pass |
-| conjunction | absent | 48.7 | 45.0 | 3.7 | pass |
-| spatial | present | 34.9 | 43.0 | 8.1 | miss |
-| spatial | absent | 88.6 | 95.0 | 6.4 | miss |
-
-Slopes in ms per item, from the Lisp module at the per-task phase 1 parameter
-sets, 250 trials per cell (2000 per task). The acceptance target is 5 ms/item.
-The absent-to-present slope ratio is 2.5 for spatial configuration and 3.1 for
-conjunction, both inside the 2 to 3 band the handoff asks for, and the
-qualitative ordering feature < conjunction < spatial holds with a wide margin.
-
-The intercepts are the clearer failure: 603 to 788 ms against a human 480 to
-580. Measured directly from the trial CSVs, the response stage accounts for
-310 ms of the mean RT and 350 ms of the median: a production to issue the
-search, a production to read the result and a `press-key`, which section 11
-forbids tuning into the module. The module's own search time at the smallest
-set size is 299 ms for feature, 397 for conjunction and 561 for spatial
-configuration. That floor is structural: one selection interval, a 120 ms
-identification and, on most trials, at least one saccade of about 200 ms.
-Humans do the same tasks in 480 to 690 ms in total, so either the model's
-per-item cost or its response stage has to come down, and the response stage
-is the one that is not the module's to change.
-
-## Tier 1: capture cost
-
-Additional-singleton paradigm, model against Adam et al. experiment 1c. The
-target is an orientation singleton rather than their shape singleton, because
-shape does not guide in this module; that is the same paradigm expressed in
-the module's guiding dimensions.
-
-| bottom-up weight | n=3 | n=4 | n=5 | n=6 | mean | human mean |
-|---|---|---|---|---|---|---|
-| `:gs-w-bu` 0.5 (handoff default) | 3.6 | 1.9 | 19.3 | 13.2 | **+9.5** | +39.4 |
-| `:gs-w-bu` 3.0 (refitted) | 29.7 | 41.1 | 30.6 | 31.4 | **+33.2** | +39.4 |
-| human (Adam 1c) | 31.7 | 32.0 | 42.8 | 51.2 | +39.4 | |
-
-Capture cost in ms, 16000 trials per condition. The acceptance target is sign
-and magnitude within 50 percent. At the handoff's provisional `:gs-w-bu` of
-0.5 the sign is right but the magnitude is a quarter of the human value; at
-3.0 it is within 16 percent. Section 5.3 flags the bottom-up and top-down
-weights as provisional and says phase 4 fits them, and this is the dataset
-that fixes their ratio: capture is a direct read-out of `w_BU / w_TD`.
-
-## Tier 2: eye movements
-
-Fixation counts and durations at the benchmark set sizes are right; saccade
-amplitudes are far too long, and the comparison at Wu and Wolfe's set sizes
-fails badly.
-
-| statistic | feature | conjunction | spatial | target | verdict |
-|---|---|---|---|---|---|
-| fixations per trial | 1.27 | 1.97 | 4.30 | rises with difficulty | pass |
-| fixation duration, mean | 229 ms | 292 ms | 241 ms | 180 to 275 ms | 2 of 3 |
-| saccade amplitude, mean | 8.3 deg | 12.6 deg | 12.5 deg | 3 to 7 deg | miss |
-| refixation rate | 0.003 | 0.001 | 0.005 | low | pass |
-| fixations outside the display | none | none | none | none | pass |
-
-Amplitudes are the clear miss. The module chooses its saccade target by
-priority inside a 12 degree exploration field and, once the fitted attentional
-field grew to 12 to 16 degrees, nothing keeps successive fixations near each
-other: the eye crosses the display rather than working through it. A
-proximity term on the *saccade* choice, separate from the eccentricity term in
-the priority map, is the obvious repair and is not in the specification.
-
-At set sizes 42 and 80 the module makes about three times as many fixations as
-Wu and Wolfe's observers:
-
-| set size | target | model fixations | human fixations | ratio |
-|---|---|---|---|---|
-| 42 | present | 12.2 | 4.7 | 2.6 |
-| 42 | absent | 32.8 | 10.8 | 3.0 |
-| 80 | present | 24.0 | 8.0 | 3.0 |
-| 80 | absent | 64.5 | 16.9 | 3.8 |
-
-The acceptance target is within one fixation per trial. The diagnosis is
-direct: the model resolves about 0.8 items per fixation, the observers about
-four. Its functional visual field for shape is roughly half theirs in linear
-size, which follows from `:gs-acuity-theta` for `shape` being 0.40 against an
-item 2.1 degrees across, so shape is available only within about 4 degrees.
-
-One caveat that limits how much weight this comparison can bear: Wu and
-Wolfe's display geometry was not read from their materials, so the model runs
-on a display whose density is held at the benchmark's and whose field grows
-with set size (40.5 degrees at n=80). A denser display would put more items
-inside the same functional field and raise the model's items per fixation.
-Fixing the geometry from the source is the first thing to do before treating
-this row as a settled failure.
-
-No scanpath metric is reported. MultiMatch, ScanMatch and Sequence Score are
-implemented and unit-tested in `harness/metrics.py`, and `human_ceiling`
-computes the split-half baseline section 9 requires, but the Wu and Wolfe OSF
-project holds foraging experiments whose per-fixation coordinates are not in
-the released aggregate, so there is nothing to compare a model scanpath
-against. Reporting a scanpath similarity without its human-human ceiling would
-be worse than reporting none.
-
-## Plots
-
-Written by `harness/analyze.py --plots`, one directory per task under
-`data/model/plots/`:
-
-* `rt_by_set_size.png`, model cell means with the human slope lines overlaid;
-* `quantile_probability.png`, the .1 to .9 RT quantiles against proportion
-  correct, which is where the intercept offset and the too-short right tail
-  show up together;
-* `fixation_counts.png`, the distribution of fixations per trial.
-
-The spatial-configuration plot is the clearest picture of the state of the
-model: the target-absent line runs almost on top of the human one, and the
-whole misfit is the constant offset of the target-present line.
-
-## Tiers 3 and 4
-
-Not run. COCO-Search18 and VSGUI10K are report-only in the handoff and need an
-external priority front end feeding the `salience` and `prior` slots, which
-the module accepts but nothing in this repository produces.
-
-## Phase 6: prevalence and priming
-
-Both mechanisms work and neither produces an effect of the required size.
-
-**Prevalence.** At 10 percent versus 50 percent targets the miss rate does not
-rise, and target-absent RTs get slower rather than faster:
-
-| prevalence | miss rate | false alarms | absent RT | present RT | rejections per absent trial |
-|---|---|---|---|---|---|
-| 10 percent | 0.098 | 0.000 | 2464 ms | 1189 ms | 21.2 |
-| 50 percent | 0.076 | 0.000 | 1728 ms | 1125 ms | 10.9 |
-
-Lisp module, spatial-configuration task, 4800 trials each, first quarter
-discarded as burn-in. Phase 6 asks for a miss-rate increase of at least 10
-points and faster target-absent RTs. The miss rate moves 2.2 points in the
-right direction and the absent RT moves the wrong way. Diagnosis: the update rule of section 5.6 raises the
-threshold by `qt_step / (error_goal * prevalence * 2)`, which at 10 percent
-prevalence is 3.125 against a threshold near 1. A single miss therefore moves
-the threshold by more than its own value, so the controller is bang-bang
-rather than graded and spends most of its time far above the level its
-equilibrium implies, `m = 0.16 (1 - p)`. Reducing `:gs-qt-step` from 0.05 to
-0.005, which is GS6's step relative to its own threshold, restores the RT
-ordering (absent RT 1863, 1711 and 2378 ms at prevalence 0.1, 0.5 and 0.9) but
-still not the miss-rate effect. The remaining gap is that guidance and
-foveation make most hits happen within a few rejections, so the miss rate
-saturates below the level the rule is trying to reach.
-
-**Priming.** With the target's defining colour repeated versus switched, the
-Lisp module's benefit is +6 plus or minus 6 ms on target-present trials and
--5 plus or minus 11 ms on target-absent trials, over 5600 trials, against the
-20 to 60 ms phase 6 asks for.
-The mechanism itself is intact and graded: with a template that does not guide,
-so that only the history term can separate the primed item, the primed colour
-wins the priority map on
-
-| `:gs-w-h` | primed item wins |
-|---|---|
-| 0.0 | 38 percent |
-| 0.3 (default) | 62 percent |
-| 1.0 | 95 percent |
-
-against a chance level of 8 percent at set size 12. The reason no RT benefit
-appears in the benchmark is that the model is given a correct, explicit
-template on every trial, so guidance already puts the target first and there
-is nothing left for priming to speed up. Priming of pop-out, where the
-target-defining colour is unknown to the observer, is the experiment that
-would show it; the benchmark tasks cannot.
-
-## The Lisp module against its Python mirror
-
-Phase 4 asks that the two agree within Monte Carlo error at the same
-parameters. The comparison is on the module's own search time, not RT, because
-the response stage is a fixed constant in Python and a real production and
-motor path in Lisp, and that difference is not a port error.
-
-They agree well on the two slow tasks and diverge on the fast one. For
-conjunction search every cell is within 68 ms of its mirror on means of 400 to
-1250 ms, and only two of eight cells exceed two standard errors. For spatial
-configuration six of eight cells are within 31 ms, the exception being target
-absent at set size 18, where the Lisp module is 259 ms faster (z = -5.3). For
-feature search the absolute differences are smaller, -90 to +230 ms, but the
-means are small too, so most cells are several standard errors apart: the Lisp
-module finds the target about 70 ms faster and quits about 100 ms slower, and
-the gap grows with set size.
-
-Two known sources account for most of it, and neither is a port error in the
-selection engine. The Lisp module runs inside ACT-R's event queue, where the
-visicon is reprocessed and the buffer stuffed between trials, while the mirror
-starts from a clean display; and the mirror's saccade preparation counts
-features against its own previous saccade whereas the Lisp module's is reset
-per search. The residual for feature-absent at set size 18 is not explained
-and is recorded as open.
-
-## Parameters
-
-Defaults are the handoff's section 6 values. Only the entries below were
-changed by fitting; everything else is at its default.
-
-| parameter | default | feature | conjunction | spatial | one shared set |
-|---|---|---|---|---|---|
-| `:gs-memory` | 4 | 8 | 16 | 12 | 16 |
-| `:gs-w-e` | 0.02 | 0.02 | 0.10 | 0.05 | 0.05 |
-| `:gs-noise` | 0.2 | 0.05 | 0.3 | 0.2 | 0.05 |
-| `:gs-choice-beta` | 4.0 | 2.0 | 2.0 | 16.0 | 8.0 |
-| `:gs-select-interval` | 0.050 | 0.030 | 0.030 | 0.030 | 0.020 |
-| `:gs-diffuser-capacity` | 5 | 2 | 3 | 8 | 3 |
-| `:gs-attn-fvf` | 8.0 | 16.0 | 16.0 | 12.0 | 16.0 |
-| `:gs-max-fixation` | 0.4 | 0.25 | 0.20 | 0.20 | 0.4 |
-
-Section 12 decision 6 asks whether the selection interval and diffuser
-capacity may differ per task. Both branches were fitted so the cost of
-insisting on one set is visible. Every task wants a shorter selection interval
-than the default 0.050 s, and every task wants a larger attentional field than
-Wu and Wolfe's 8 degree estimate; the fitted 12 to 16 degrees is outside the
-5 to 10 degree range section 5.2 gives, which is a real tension between the
-field estimate and the RT slopes, not a fitting artefact.
-
-Two other defaults are contradicted by the data above: `:gs-w-bu` wants to be
-about 3.0 rather than 0.5 to produce the singleton capture cost, and
-`:gs-qt-step` wants to be about 0.005 rather than 0.05 for the adaptive
-threshold to behave as a controller rather than a switch.
-
-## Comparison with the published models
-
-| model | 2-vs-5 present | 2-vs-5 absent | ratio | source |
-|---|---|---|---|---|
-| human | 43 | 95 | 2.2 | Wolfe, Palmer and Horowitz 2010 |
-| Competitive Guided Search | 41.7 | 98.5 | 2.4 | `reference/cgs.py` at the published fits |
-| Guided Search 6 | 37.2 | 113.7 | 3.1 | `reference/gs6_sim.py`, port of Wolfe's MATLAB |
-| this module (Lisp) | 34.9 | 88.6 | 2.5 | `data/model/phase1_spatial_seed1_trials.csv` |
-| this module (Python mirror) | 33.5 | 110.5 | 3.3 | `data/model/hybrid_summary.json` |
-
-The GS6 row is at prevalence 0.5 with its own set sizes (5 to 20) and carries
-no non-decision time, so its intercept is not comparable; its slopes and its
-ratio are. Competitive Guided Search remains the closest fit to the benchmark
-slopes, which is expected since it was fitted to exactly them and has no eyes,
-no acuity and no display geometry to satisfy at the same time.
-
-**PAAV.** No numerical comparison is made. PAAV (Nyamsuren and Taatgen 2013)
-targets ACT-R 6 and does not load in ACT-R 7, so it cannot be run here, and
-its published results are on different tasks. What it contributed is the
-0.5-for-unknown top-down rule, the four-second iconic persistence and the
-subclass-and-redefine integration route, all of which are in the module and
-credited in the source.
-
-## Failures, in one place
-
-1. **Three of six Tier 1 slopes miss the 5 ms/item target** by 6 to 8 ms/item:
-   feature absent, spatial present and spatial absent.
-2. **Intercepts are 100 to 200 ms above the human values** at every parameter
-   set. About 350 ms of the model's RT is the response stage that must not be
-   tuned away, and the module's own floor accounts for the rest.
-3. **The prevalence effect is absent and partly inverted.** The section 5.6
-   update rule is too coarse to act as a controller at low prevalence.
-4. **The priming benefit is not measurable in the benchmark**, though the
-   mechanism is graded and works when the template does not guide.
-5. **Fixation counts at set sizes 42 and 80 are about three times human**, with
-   a display-geometry caveat that has to be resolved before the number means
-   anything.
-6. **Saccade amplitudes are 8 to 13 degrees against a 3 to 7 degree target.**
-7. **No scanpath metric is reported**, because no per-fixation human data with
-   a computable ceiling was reachable.
-8. **The fitted attentional field, 12 to 16 degrees, is outside the 5 to 10
-   degrees** that section 5.2 takes from Wu and Wolfe (2022).
-9. **`:gs-w-bu` 0.5 predicts no singleton capture.** Capture appears at about
-   3.0.
-10. **Tier 3 and Tier 4 were not attempted.**
-
-Items 1, 2 and 6 are one problem seen three ways: the module spends too much
-time per item and too much of it on eye movements. Items 3 and 9 are
-mis-specified default parameters with a known replacement. Items 5, 7 and 10
-are missing data rather than model failures.
-
----
-
-<!-- the tables below are generated; see harness/report.py -->
-<!-- generated by harness/report.py; do not edit by hand -->
-
-### Tier 1 slopes and intercepts, per-task parameter sets
-
-| task | target | model ms/item | human ms/item | error | model intercept | human intercept |
-|---|---|---|---|---|---|---|
-| feature | present | 1.1 | 1.0 | 0.1 | 602 | 480 |
-| feature | absent | 9.9 | 3.0 | 6.9 | 632 | 500 |
-| conjunction | present | 15.6 | 20.0 | 4.4 | 664 | 520 |
-| conjunction | absent | 48.7 | 45.0 | 3.7 | 619 | 560 |
-| spatial | present | 34.9 | 43.0 | 8.1 | 781 | 560 |
-| spatial | absent | 88.6 | 95.0 | 6.4 | 787 | 580 |
-
-### Tier 1 error rates
-
-| task | kind | n=3 | n=6 | n=12 | n=18 |
-|---|---|---|---|---|---|
-| feature | miss | 0.060 | 0.072 | 0.084 | 0.100 |
-| feature | false_alarm | 0.000 | 0.000 | 0.000 | 0.000 |
-| conjunction | miss | 0.044 | 0.092 | 0.088 | 0.080 |
-| conjunction | false_alarm | 0.000 | 0.000 | 0.000 | 0.000 |
-| spatial | miss | 0.052 | 0.084 | 0.084 | 0.088 |
-| spatial | false_alarm | 0.000 | 0.000 | 0.000 | 0.000 |
-
-### One shared parameter set
-
-| task | model present | human present | model absent | human absent | absent/present |
-|---|---|---|---|---|---|
-| conjunction | 8.1 | 20.0 | 67.5 | 45.0 | 8.30 |
-| feature | -0.2 | 1.0 | 1.5 | 3.0 | -8.65 |
-| spatial | 44.3 | 43.0 | 115.2 | 95.0 | 2.60 |
-
-### Lisp module against its Python mirror, module search time
-
-| task | set size | target | Lisp ms | Python ms | difference | joint SE | z |
+A comparison of this model with other models of visual search, fitted to
+the same participants, is in [RESULTS-COMPARISON-20260906.md](RESULTS-COMPARISON-20260906.md).
+
+A later, exploratory refit of the same day is reported separately in
+[RESULTS-REFIT-20260905.md](RESULTS-REFIT-20260905.md). It adds six
+parameters that default to the behaviour measured below, so nothing in this
+document changes; its test-split numbers are not confirmatory because the test
+summaries below had already been inspected.
+
+The validation repairs are implemented, but the revised model does not meet
+all quantitative human targets. On untouched test participants, the shared
+ACT-R fit has mean RT RMSE **108.0 ms**, mean cell quantile RMSE **127.7 ms**
+(target: at most 40 ms), and **2 of 6** slopes within 5 ms/item. The largest
+miss-rate difference is **10.9 percentage points** (target: at most 3).
+Final shared runs contain 2,000 retained trials per cell across two fresh
+seeds, with no timeouts. Lisp/mirror search means have no discrepancy beyond
+the predeclared Bonferroni threshold across 24 cells; maximum |z| is 1.47.
+
+The [historical report](RESULTS-HISTORICAL-20260904.md) preserves the old
+provisional targets and event-loop RT measurements. They are not current
+human validation. The old intercept ranges are superseded by the measured
+intercept errors in the generated slope CSVs.
+
+## Sources and protocol
+
+All 111,777 source trials are retained in the normalized archive. RT analysis
+uses correct trials at 200–4,000 ms for feature/conjunction and 200–8,000 ms
+for spatial search, inclusive. Accuracy uses all validated behavioral rows.
+Positive-RT sensitivity and pooled descriptive summaries are separate.
+The protocol follows [Wolfe, Palmer, and Horowitz's source methods](https://pmc.ncbi.nlm.nih.gov/articles/PMC2891283/).
+
+Participants are weighted equally, including their quantiles. The split seed
+is 20260905. Within each task, training/validation/test counts are 5/2/2,
+6/2/2, and 5/2/2. Simulation practice is synthetic: 30 trials precede each
+300-trial block, with a final block of up to 400. Accuracy feedback follows
+keypress; the next display appears 2 seconds after response. Tasks have
+separate observers and learned state. Displays reproduce a distribution;
+the source RT files do not supply original item coordinates.
+
+The first selection interval remains a modeled selection cost. Wald
+identification completes recognition when features are available. ACT-R
+then constructs the buffer object without a second full recognition delay.
+Measured response-stage times are 160 ms for repeated keys, 260 ms for
+switches, and 310 ms for the first response. Feedback is outside trial RT.
+The runner's event-loop return is usually 90 ms later than keypress, and is
+never used as the response timestamp.
+
+## Development and frozen testing
+
+Two independent DE searches fit six parameters against training quantiles
+and separate error rates. Each uses four generations and an 18-member
+population, followed by larger independent validation simulations. This is
+a bounded optimization exercise, not evidence of optimizer convergence or
+a global optimum. Drift, priority temperature, and noise are fixed in the
+new search to reduce redundant scale fitting. Local sensitivity is reported
+without reselecting parameters after the freeze.
+
+The primary model shares all search settings across tasks. Per-task searches
+and historical settings were secondary candidates. Feature and spatial
+validation selected the shared settings; their final simulations are reused
+explicitly. Conjunction selected a historical alternative with 11 parameter
+fields differing from the shared fit, including its 16-degree attentional
+field. This secondary setting exceeds the new DE field bound and must not
+be interpreted as one universal model. All candidates were selected before
+test evaluation. Future tuning based on these test results is exploratory.
+
+## Controlled mechanism evidence
+
+Fixed-parameter ablations use seeds 321 and 322. Removing extra recognition
+saves approximately 43–49 ms on present trials; it does not explain the whole
+historical intercept gap. Under the revised eye policy, spatial fixation
+count falls from 12.92 to 6.06 per trial, and stationary durations increase
+from 146 to 188 ms. Mean saccade amplitude falls only from 12.81 to 11.81
+degrees, still outside the 3–7 degree project check.
+
+The final shared RT fit also misses the eye checks. Its stationary durations
+are 124.8 ms (feature), 186.3 ms (conjunction), and 142.2 ms (spatial), against
+the 180–275 ms project range. Spatial amplitude is 12.77 degrees and count is
+4.57 per trial. These are benchmark search-window measures, not a matched
+comparison with continuous-foraging episodes.
+
+The default bottom-up weight remains 0.5. At 3.0, default conjunction absent
+RT rises from 1,146 to 2,812 ms and fixation count from 2.46 to 6.38; a
+capture benefit does not justify promoting it globally. The default
+threshold step remains 0.05. The 0.005 ablation changes speed and accuracy
+without establishing the intended prevalence behavior. Both candidates and
+their trajectories are retained for review. The selected human fit has its
+own complete, explicit settings.
+
+The unchanged GS6 replication retains the posted MATLAB's prevalence
+exception: low prevalence does not produce the intended human combination
+of sharply increased misses and faster absent RT. Shrinking the controller
+step is not a demonstrated solution. See the secondary experiment results
+for the revised hybrid's residual failure.
+
+The [secondary results](validation-20260905/SECONDARY-RESULTS.md) report
+capture, both priming protocols, the history ablation, prevalence, and human
+split-half eye consistency. The shared mirror capture cost is 10.6 ms against
+the 39.4 ms human analogue; raising the weight to 3 gives 28.7 ms. This is
+calibration with different target features, not a matched replication.
+
+## Eye-data interpretation
+
+The nested OSF [Experiment 1 component](https://osf.io/qwm6r/) supplied
+`Exp1Data.mat`, exported using the installed MATLAB. It contains 146,956
+fixations from 19 participants; the author's script selects 18. Adding target
+episode to subject/trial/fixation identity resolves 14 apparent repeated
+indices without deleting any records. Participant-average foraging measures
+are 15.98 fixations per episode, 249.1 ms per fixation, 5.41-degree saccades,
+and a 9.5% refixation rate under a one-degree proximity definition.
+
+The [Wu and Wolfe methods](https://pmc.ncbi.nlm.nih.gov/articles/PMC8976560/)
+describe 1-degree T/L stimuli on a 10-by-8 grid at 2.5-degree spacing,
+continuous target replacement, and click responses. The source table agrees
+with that geometry (120-pixel spacing; 47.76 pixels per degree). The separate
+`RealData.csv` concerns 42/80-item keypress search; it is not this fixation
+table or the 2-versus-5 benchmark. Its undocumented accuracy coding is not
+used as a new fitting target.
+
+Human split-half ScanMatch, Sequence Score, and MultiMatch are computed for
+100 target/initial-gaze-matched conditions. They are descriptive human
+consistency estimates. Model-to-human scanpath scores and the within-one-
+fixation criterion remain unavailable for a matched experiment: original
+rotations, stimulus/result timestamps, and a model observation window aligned
+with continuous foraging clicks are missing. Benchmark fixation logs end at
+visual result. Their counts cannot be equated with the foraging episodes.
+
+## Reproducible artifacts
+
+Review [the run record](validation-20260905/run-record.json),
+[the selected configurations](validation-20260905/selected.json), and
+[the final shared test plot](validation-20260905/shared_test.png).
+The same directory contains all 24-cell summaries, five quantiles, confidence
+intervals, error counts, slopes/intercepts, ex-Gaussian fits, parity tables,
+ablation summaries, and secondary study results. Full trial, event, and
+fixation logs remain under `data/model/repair_20260905/`. The original
+StuffIt archive was inspected as an archive, but its contents could not be
+decoded with the available archive tool; it is not combined with raw RTs.
+
+The original frozen selection metadata understates the historical conjunction
+candidate's extra settings. Its value of six describes the new DE search
+dimension; the selected historical candidate differs from shared in eleven
+fields. The [metadata erratum](validation-20260905/selection_metadata_erratum.json)
+records those fields while preserving the original freeze.
+
+Final checks pass: 115 Lisp assertions, 18 reference tests, 15 compatibility
+tests, 17 validation tests, and ten CLI help checks. A concurrent-test failure
+exposed the tutorial client's shared port-file race. The runner now uses a
+private handshake and a separate client module per session; a nested-session
+regression verifies isolation. Complete parameter readback rejected the wrong
+server during the failed test. The failed logs remain in the run directory.
+
+Run `harness/report.py --manifest ... --final-test` with the venv to regenerate
+the marked section below. It verifies source/split/configuration hashes and
+fails for missing required inputs. See the run record for complete commands.
+
+
+<!-- BEGIN VALIDATION GENERATED -->
+
+## Raw-data validation
+
+Human values use validated source trials and equal participant weights. ACT-R RT runs from stimulus onset to first valid keypress. Practice is excluded from retained counts. Full cell tables, confidence intervals, quantiles, and plots are in the evaluation artifact directory.
+
+Source rows: 111,777. Split ID: `3909d6744a259e3a836b682ca7f2f15766cb8c1c58581145042a72c5fdb7f841`.
+
+
+| Run | Role | Split | Mean RT RMSE (ms) | Quantile RMSE (ms) | Slopes within 5 ms/item | Largest miss error (points) | Timeouts |
 |---|---|---|---|---|---|---|---|
-| feature | 3 | present | 299 | 376 | -78 | 11.5 | -6.7 |
-| feature | 3 | absent | 372 | 301 | 71 | 16.3 | 4.4 |
-| feature | 6 | present | 285 | 365 | -80 | 9.9 | -8.1 |
-| feature | 6 | absent | 343 | 294 | 49 | 14.6 | 3.4 |
-| feature | 12 | present | 277 | 367 | -90 | 10.2 | -8.8 |
-| feature | 12 | absent | 416 | 301 | 116 | 16.7 | 6.9 |
-| feature | 18 | present | 310 | 370 | -59 | 10.8 | -5.5 |
-| feature | 18 | absent | 523 | 292 | 230 | 21.6 | 10.6 |
-| conjunction | 3 | present | 397 | 400 | -3 | 15.2 | -0.2 |
-| conjunction | 3 | absent | 465 | 397 | 68 | 16.2 | 4.2 |
-| conjunction | 6 | present | 442 | 416 | 25 | 15.9 | 1.6 |
-| conjunction | 6 | absent | 611 | 555 | 56 | 18.4 | 3.1 |
-| conjunction | 12 | present | 549 | 509 | 40 | 22.1 | 1.8 |
-| conjunction | 12 | absent | 897 | 863 | 34 | 22.8 | 1.5 |
-| conjunction | 18 | present | 632 | 587 | 45 | 26.4 | 1.7 |
-| conjunction | 18 | absent | 1209 | 1249 | -41 | 35.5 | -1.1 |
-| spatial | 3 | present | 561 | 530 | 31 | 17.9 | 1.7 |
-| spatial | 3 | absent | 711 | 695 | 16 | 15.3 | 1.0 |
-| spatial | 6 | present | 693 | 723 | -30 | 26.6 | -1.1 |
-| spatial | 6 | absent | 1071 | 1061 | 9 | 19.6 | 0.5 |
-| spatial | 12 | present | 926 | 922 | 4 | 37.6 | 0.1 |
-| spatial | 12 | absent | 1567 | 1575 | -9 | 25.4 | -0.3 |
-| spatial | 18 | present | 1074 | 1050 | 25 | 44.6 | 0.6 |
-| spatial | 18 | absent | 2070 | 2329 | -259 | 49.3 | -5.3 |
+| unfitted | unfitted | train | 465.9 | 351.9 | 3/6 | 11.5 | 0 |
+| unfitted | unfitted | validation | 593.4 | 411.1 | 5/6 | 15.6 | 0 |
+| unfitted | unfitted | test | 529.1 | 365.4 | 3/6 | 12.4 | 0 |
+| shared | primary | train | 160.7 | 151.5 | 3/6 | 10.1 | 0 |
+| shared | primary | validation | 123.7 | 143.1 | 5/6 | 16.5 | 0 |
+| shared | primary | test | 108.0 | 127.7 | 2/6 | 10.9 | 0 |
+| task_feature | secondary | train | 71.9 | 78.2 | 2/2 | 0.8 | 0 |
+| task_feature | secondary | validation | 44.7 | 93.2 | 2/2 | 0.6 | 0 |
+| task_feature | secondary | test | 84.9 | 98.8 | 2/2 | 2.2 | 0 |
+| task_conjunction | secondary | train | 198.6 | 203.0 | 0/2 | 6.7 | 0 |
+| task_conjunction | secondary | validation | 79.1 | 98.9 | 1/2 | 7.1 | 0 |
+| task_conjunction | secondary | test | 134.4 | 157.9 | 1/2 | 6.1 | 0 |
+| task_spatial | secondary | train | 205.1 | 184.8 | 0/2 | 10.1 | 0 |
+| task_spatial | secondary | validation | 163.7 | 200.7 | 1/2 | 16.5 | 0 |
+| task_spatial | secondary | test | 104.3 | 122.3 | 0/2 | 10.9 | 0 |
 
-### Eye movements
 
-| task | fixations/trial | mean duration ms | median duration ms | amplitude deg | refixation rate |
-|---|---|---|---|---|---|
-| feature | 1.27 | 229 | 282 | 8.3 | 0.003 |
-| conjunction | 1.97 | 292 | 312 | 12.6 | 0.001 |
-| spatial | 4.30 | 241 | 239 | 12.5 | 0.005 |
+### Primary ACT-R fit: train
 
-### RT quantiles (ms)
+These are measured participant-average means. Error rates use all behavioral trials independently of RT trimming.
 
-| task | n | target | .1 | .3 | .5 | .7 | .9 |
-|---|---|---|---|---|---|---|---|
-| feature | 3 | absent | 500 | 513 | 618 | 773 | 966 |
-| feature | 6 | absent | 500 | 500 | 580 | 731 | 962 |
-| feature | 12 | absent | 500 | 533 | 711 | 822 | 1042 |
-| feature | 18 | absent | 500 | 602 | 770 | 930 | 1232 |
-| feature | 3 | present | 500 | 501 | 561 | 651 | 818 |
-| feature | 6 | present | 500 | 504 | 558 | 631 | 751 |
-| feature | 12 | present | 500 | 500 | 544 | 641 | 799 |
-| feature | 18 | present | 500 | 524 | 585 | 683 | 822 |
-| conjunction | 3 | absent | 500 | 656 | 746 | 831 | 1040 |
-| conjunction | 6 | absent | 657 | 779 | 890 | 1013 | 1212 |
-| conjunction | 12 | absent | 808 | 1053 | 1177 | 1352 | 1517 |
-| conjunction | 18 | absent | 998 | 1257 | 1466 | 1652 | 2084 |
-| conjunction | 3 | present | 500 | 544 | 677 | 803 | 987 |
-| conjunction | 6 | present | 500 | 588 | 747 | 870 | 1012 |
-| conjunction | 12 | present | 500 | 641 | 834 | 991 | 1250 |
-| conjunction | 18 | present | 514 | 693 | 914 | 1105 | 1446 |
-| spatial | 3 | absent | 776 | 894 | 1003 | 1111 | 1198 |
-| spatial | 6 | absent | 1034 | 1246 | 1377 | 1505 | 1696 |
-| spatial | 12 | absent | 1426 | 1680 | 1856 | 2048 | 2317 |
-| spatial | 18 | absent | 1610 | 2130 | 2360 | 2615 | 3066 |
-| spatial | 3 | present | 575 | 728 | 823 | 945 | 1182 |
-| spatial | 6 | present | 543 | 791 | 978 | 1179 | 1421 |
-| spatial | 12 | present | 654 | 915 | 1175 | 1476 | 1922 |
-| spatial | 18 | present | 643 | 993 | 1371 | 1694 | 2076 |
 
-### Ex-Gaussian fits (ms)
+| Task | N | Target | Human mean | ACT-R mean | Human median | ACT-R median | Quantile RMSE | Human error % | ACT-R error % | Human RT count | Model RT count | Timeouts |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| conjunction | 3 | absent | 543.6 | 583.7 | 515.0 | 571.5 | 128.4 | 2.01 | 0.00 | 2957 | 1993 | 0 |
+| conjunction | 3 | present | 495.3 | 432.5 | 464.3 | 366.8 | 101.0 | 2.15 | 4.25 | 2893 | 1875 | 0 |
+| conjunction | 6 | absent | 597.4 | 745.8 | 558.1 | 729.0 | 199.2 | 1.46 | 0.00 | 2942 | 1998 | 0 |
+| conjunction | 6 | present | 511.7 | 443.7 | 481.2 | 362.0 | 117.2 | 2.71 | 5.70 | 2913 | 1861 | 0 |
+| conjunction | 12 | absent | 717.8 | 1013.1 | 649.7 | 933.5 | 356.6 | 1.35 | 0.00 | 2986 | 1999 | 0 |
+| conjunction | 12 | present | 562.3 | 485.6 | 524.2 | 404.5 | 126.9 | 3.05 | 9.95 | 3022 | 1791 | 0 |
+| conjunction | 18 | absent | 840.0 | 1166.7 | 763.2 | 1103.2 | 372.6 | 1.19 | 0.00 | 2898 | 1998 | 0 |
+| conjunction | 18 | present | 616.0 | 517.4 | 566.2 | 426.5 | 129.8 | 4.44 | 10.85 | 2808 | 1771 | 0 |
+| feature | 3 | absent | 459.6 | 345.1 | 410.7 | 313.2 | 102.2 | 1.73 | 0.00 | 2447 | 1939 | 0 |
+| feature | 3 | present | 412.7 | 378.4 | 381.3 | 328.2 | 66.9 | 1.99 | 2.00 | 2463 | 1911 | 0 |
+| feature | 6 | absent | 446.8 | 357.6 | 408.9 | 317.5 | 88.7 | 1.31 | 0.00 | 2535 | 1916 | 0 |
+| feature | 6 | present | 426.7 | 381.1 | 390.0 | 327.5 | 64.2 | 2.14 | 1.30 | 2331 | 1904 | 0 |
+| feature | 12 | absent | 442.8 | 362.1 | 406.4 | 319.5 | 81.0 | 0.93 | 0.00 | 2468 | 1928 | 0 |
+| feature | 12 | present | 427.6 | 380.3 | 394.8 | 328.0 | 71.5 | 1.91 | 2.20 | 2414 | 1884 | 0 |
+| feature | 18 | absent | 444.8 | 373.5 | 404.0 | 325.0 | 76.8 | 0.43 | 0.00 | 2548 | 1937 | 0 |
+| feature | 18 | present | 432.9 | 376.2 | 398.8 | 324.8 | 73.8 | 2.78 | 2.70 | 2425 | 1885 | 0 |
+| spatial | 3 | absent | 910.6 | 874.3 | 844.1 | 880.0 | 65.2 | 0.86 | 0.00 | 2426 | 2000 | 0 |
+| spatial | 3 | present | 761.9 | 662.3 | 714.0 | 634.5 | 109.4 | 1.63 | 3.75 | 2411 | 1920 | 0 |
+| spatial | 6 | absent | 1320.3 | 1212.0 | 1254.5 | 1231.2 | 119.0 | 0.86 | 0.00 | 2464 | 2000 | 0 |
+| spatial | 6 | present | 917.2 | 796.5 | 846.6 | 759.2 | 131.6 | 1.93 | 8.30 | 2493 | 1832 | 0 |
+| spatial | 12 | absent | 1983.4 | 1796.4 | 1913.5 | 1754.2 | 200.7 | 1.03 | 0.00 | 2461 | 2000 | 0 |
+| spatial | 12 | present | 1220.9 | 1007.1 | 1120.4 | 922.0 | 203.2 | 6.33 | 14.30 | 2316 | 1711 | 0 |
+| spatial | 18 | absent | 2391.8 | 2033.5 | 2321.6 | 1987.8 | 353.7 | 1.01 | 0.00 | 2474 | 2000 | 0 |
+| spatial | 18 | present | 1444.0 | 1144.0 | 1312.1 | 1079.2 | 295.6 | 10.84 | 20.95 | 2219 | 1580 | 0 |
 
-| task | n | target | mu | sigma | tau |
-|---|---|---|---|---|---|
-| feature | 3 | absent | 500 | 0 | 218 |
-| feature | 6 | absent | 500 | 0 | 166 |
-| feature | 12 | absent | 500 | 0 | 232 |
-| feature | 18 | absent | 500 | 0 | 329 |
-| feature | 3 | present | 500 | 0 | 114 |
-| feature | 6 | present | 500 | 0 | 109 |
-| feature | 12 | present | 500 | 0 | 102 |
-| feature | 18 | present | 500 | 0 | 131 |
-| conjunction | 3 | absent | 589 | 101 | 180 |
-| conjunction | 6 | absent | 733 | 155 | 179 |
-| conjunction | 12 | absent | 1038 | 237 | 157 |
-| conjunction | 18 | absent | 1164 | 284 | 337 |
-| conjunction | 3 | present | 500 | 0 | 212 |
-| conjunction | 6 | present | 592 | 139 | 163 |
-| conjunction | 12 | present | 500 | 0 | 358 |
-| conjunction | 18 | present | 500 | 0 | 490 |
-| spatial | 3 | absent | 880 | 147 | 127 |
-| spatial | 6 | absent | 1281 | 264 | 89 |
-| spatial | 12 | absent | 1863 | 347 | 0 |
-| spatial | 18 | absent | 2055 | 493 | 308 |
-| spatial | 3 | present | 673 | 140 | 189 |
-| spatial | 6 | present | 824 | 276 | 178 |
-| spatial | 12 | present | 779 | 263 | 455 |
-| spatial | 18 | present | 1046 | 446 | 339 |
 
-### Prevalence
+### Primary ACT-R fit: validation
 
-| prevalence | miss rate | false-alarm rate | absent RT ms | present RT ms | rejections | trials |
-|---|---|---|---|---|---|---|
-| 10% | 0.098 | 0.000 | 2464 | 1189 | 21.2 | 3592 |
-| 50% | 0.076 | 0.000 | 1728 | 1125 | 10.9 | 3600 |
+These are measured participant-average means. Error rates use all behavioral trials independently of RT trimming.
 
-### Priming
 
-| target | repeat ms | switch ms | benefit ms | n repeat/switch |
-|---|---|---|---|---|
-| present | 616 | 622 | 6 +- 6 | 1230/845 |
-| absent | 721 | 716 | -5 +- 11 | 1365/870 |
+| Task | N | Target | Human mean | ACT-R mean | Human median | ACT-R median | Quantile RMSE | Human error % | ACT-R error % | Human RT count | Model RT count | Timeouts |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| conjunction | 3 | absent | 669.6 | 583.7 | 569.0 | 571.5 | 99.4 | 1.31 | 0.00 | 996 | 1993 | 0 |
+| conjunction | 3 | present | 582.1 | 432.5 | 491.5 | 366.8 | 118.7 | 1.75 | 4.25 | 985 | 1875 | 0 |
+| conjunction | 6 | absent | 750.9 | 745.8 | 644.5 | 729.0 | 96.9 | 1.12 | 0.00 | 974 | 1998 | 0 |
+| conjunction | 6 | present | 594.7 | 443.7 | 519.8 | 362.0 | 133.9 | 2.82 | 5.70 | 997 | 1861 | 0 |
+| conjunction | 12 | absent | 969.4 | 1013.1 | 883.0 | 933.5 | 163.4 | 0.97 | 0.00 | 987 | 1999 | 0 |
+| conjunction | 12 | present | 671.2 | 485.6 | 588.0 | 404.5 | 165.1 | 2.43 | 9.95 | 964 | 1791 | 0 |
+| conjunction | 18 | absent | 1228.9 | 1166.7 | 1167.5 | 1103.2 | 123.3 | 1.22 | 0.00 | 948 | 1998 | 0 |
+| conjunction | 18 | present | 726.7 | 517.4 | 619.8 | 426.5 | 182.0 | 5.01 | 10.85 | 955 | 1771 | 0 |
+| feature | 3 | absent | 352.5 | 345.1 | 342.0 | 313.2 | 65.6 | 1.26 | 0.00 | 1028 | 1939 | 0 |
+| feature | 3 | present | 309.7 | 378.4 | 302.5 | 328.2 | 111.6 | 1.43 | 2.00 | 961 | 1911 | 0 |
+| feature | 6 | absent | 348.3 | 357.6 | 338.0 | 317.5 | 81.2 | 1.35 | 0.00 | 1015 | 1916 | 0 |
+| feature | 6 | present | 316.6 | 381.1 | 306.5 | 327.5 | 106.3 | 1.60 | 1.30 | 921 | 1904 | 0 |
+| feature | 12 | absent | 346.9 | 362.1 | 336.0 | 319.5 | 89.7 | 1.00 | 0.00 | 996 | 1928 | 0 |
+| feature | 12 | present | 320.3 | 380.3 | 312.0 | 328.0 | 102.7 | 2.05 | 2.20 | 1002 | 1884 | 0 |
+| feature | 18 | absent | 346.4 | 373.5 | 335.0 | 325.0 | 90.5 | 0.69 | 0.00 | 1004 | 1937 | 0 |
+| feature | 18 | present | 327.3 | 376.2 | 317.5 | 324.8 | 98.3 | 3.32 | 2.70 | 932 | 1885 | 0 |
+| spatial | 3 | absent | 694.1 | 874.3 | 639.0 | 880.0 | 207.2 | 2.27 | 0.00 | 1039 | 2000 | 0 |
+| spatial | 3 | present | 598.9 | 662.3 | 554.8 | 634.5 | 128.9 | 0.87 | 3.75 | 930 | 1920 | 0 |
+| spatial | 6 | absent | 951.2 | 1212.0 | 881.5 | 1231.2 | 294.0 | 1.10 | 0.00 | 983 | 2000 | 0 |
+| spatial | 6 | present | 691.1 | 796.5 | 634.0 | 759.2 | 191.7 | 1.25 | 8.30 | 962 | 1832 | 0 |
+| spatial | 12 | absent | 1506.5 | 1796.4 | 1404.5 | 1754.2 | 334.7 | 0.30 | 0.00 | 1000 | 2000 | 0 |
+| spatial | 12 | present | 921.5 | 1007.1 | 825.8 | 922.0 | 159.3 | 2.22 | 14.30 | 972 | 1711 | 0 |
+| spatial | 18 | absent | 1950.7 | 2033.5 | 1806.0 | 1987.8 | 178.3 | 0.58 | 0.00 | 1042 | 2000 | 0 |
+| spatial | 18 | present | 1117.0 | 1144.0 | 1008.5 | 1079.2 | 111.8 | 4.50 | 20.95 | 953 | 1580 | 0 |
 
+
+### Primary ACT-R fit: test
+
+These are measured participant-average means. Error rates use all behavioral trials independently of RT trimming.
+
+
+| Task | N | Target | Human mean | ACT-R mean | Human median | ACT-R median | Quantile RMSE | Human error % | ACT-R error % | Human RT count | Model RT count | Timeouts |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| conjunction | 3 | absent | 525.6 | 583.7 | 498.0 | 571.5 | 140.4 | 1.92 | 0.00 | 968 | 1993 | 0 |
+| conjunction | 3 | present | 504.5 | 432.5 | 468.5 | 366.8 | 104.4 | 2.77 | 4.25 | 1014 | 1875 | 0 |
+| conjunction | 6 | absent | 612.4 | 745.8 | 559.5 | 729.0 | 197.7 | 2.18 | 0.00 | 960 | 1998 | 0 |
+| conjunction | 6 | present | 542.1 | 443.7 | 504.0 | 362.0 | 120.3 | 2.08 | 5.70 | 986 | 1861 | 0 |
+| conjunction | 12 | absent | 811.7 | 1013.1 | 756.0 | 933.5 | 248.1 | 1.00 | 0.00 | 976 | 1999 | 0 |
+| conjunction | 12 | present | 598.6 | 485.6 | 555.5 | 404.5 | 134.2 | 3.43 | 9.95 | 941 | 1791 | 0 |
+| conjunction | 18 | absent | 1023.8 | 1166.7 | 963.5 | 1103.2 | 190.4 | 0.91 | 0.00 | 999 | 1998 | 0 |
+| conjunction | 18 | present | 676.2 | 517.4 | 619.2 | 426.5 | 160.0 | 6.33 | 10.85 | 934 | 1771 | 0 |
+| feature | 3 | absent | 463.6 | 345.1 | 437.0 | 313.2 | 118.9 | 2.78 | 0.00 | 1016 | 1939 | 0 |
+| feature | 3 | present | 437.9 | 378.4 | 419.0 | 328.2 | 88.3 | 3.76 | 2.00 | 967 | 1911 | 0 |
+| feature | 6 | absent | 470.0 | 357.6 | 436.5 | 317.5 | 115.1 | 2.83 | 0.00 | 966 | 1916 | 0 |
+| feature | 6 | present | 435.3 | 381.1 | 418.5 | 327.5 | 87.7 | 3.49 | 1.30 | 937 | 1904 | 0 |
+| feature | 12 | absent | 452.4 | 362.1 | 426.5 | 319.5 | 97.5 | 2.81 | 0.00 | 965 | 1928 | 0 |
+| feature | 12 | present | 445.5 | 380.3 | 423.2 | 328.0 | 91.2 | 2.91 | 2.20 | 969 | 1884 | 0 |
+| feature | 18 | absent | 457.1 | 373.5 | 431.8 | 325.0 | 96.2 | 1.44 | 0.00 | 935 | 1937 | 0 |
+| feature | 18 | present | 447.6 | 376.2 | 425.8 | 324.8 | 95.2 | 3.50 | 2.70 | 993 | 1885 | 0 |
+| spatial | 3 | absent | 694.1 | 874.3 | 646.5 | 880.0 | 198.1 | 3.31 | 0.00 | 1009 | 2000 | 0 |
+| spatial | 3 | present | 587.2 | 662.3 | 542.0 | 634.5 | 122.0 | 3.67 | 3.75 | 941 | 1920 | 0 |
+| spatial | 6 | absent | 1110.7 | 1212.0 | 1039.5 | 1231.2 | 154.7 | 2.69 | 0.00 | 997 | 2000 | 0 |
+| spatial | 6 | present | 790.2 | 796.5 | 713.8 | 759.2 | 83.1 | 2.19 | 8.30 | 1033 | 1832 | 0 |
+| spatial | 12 | absent | 1747.0 | 1796.4 | 1695.2 | 1754.2 | 128.5 | 2.76 | 0.00 | 975 | 2000 | 0 |
+| spatial | 12 | present | 1062.8 | 1007.1 | 957.2 | 922.0 | 60.5 | 5.36 | 14.30 | 946 | 1711 | 0 |
+| spatial | 18 | absent | 2168.7 | 2033.5 | 2027.2 | 1987.8 | 127.7 | 2.92 | 0.00 | 921 | 2000 | 0 |
+| spatial | 18 | present | 1265.9 | 1144.0 | 1161.5 | 1079.2 | 104.0 | 10.02 | 20.95 | 828 | 1580 | 0 |
+
+
+### Implementation agreement
+
+2000 retained trials per cell or more. 0 of 24 search-time means exceed the Bonferroni family threshold; maximum |z| = 1.47. The parity CSV also reports quantile, error, and fixation-count differences.
+
+
+
+### Evidence limits
+
+Two test participants per task give limited population precision. Simulation seeds quantify Monte Carlo variation, not human individual differences. Zero false alarms are a structural model limitation. Scanpath agreement requires verified per-fixation coordinates and matched trial/display data; aggregate fixation counts do not establish it. Historical CGS or GS6 simulation output is not a measured human reference.
+
+<!-- END VALIDATION GENERATED -->

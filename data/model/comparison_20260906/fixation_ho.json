@@ -1,0 +1,106 @@
+{
+  "model": "fixation_ho",
+  "title": "Fixation-based (Hulleman and Olivers)",
+  "n_fitted": 12,
+  "per_task": false,
+  "bounds": [
+    [
+      "t_fix",
+      0.1,
+      0.4
+    ],
+    [
+      "cv",
+      0.05,
+      1.0
+    ],
+    [
+      "k_feature",
+      1.0,
+      30.0
+    ],
+    [
+      "k_conjunction",
+      1.0,
+      30.0
+    ],
+    [
+      "k_spatial",
+      1.0,
+      12.0
+    ],
+    [
+      "memory",
+      0.0,
+      8.0
+    ],
+    [
+      "coverage",
+      0.5,
+      1.0
+    ],
+    [
+      "d",
+      0.6,
+      1.0
+    ],
+    [
+      "t0_yes",
+      0.1,
+      0.6
+    ],
+    [
+      "t0_no",
+      0.1,
+      0.6
+    ],
+    [
+      "c",
+      2.0,
+      60.0
+    ],
+    [
+      "m",
+      0.0,
+      0.05
+    ]
+  ],
+  "defaults": {
+    "t_fix": 0.25,
+    "cv": 0.3,
+    "k_feature": 30.0,
+    "k_conjunction": 7.0,
+    "k_spatial": 1.5,
+    "memory": 4.0,
+    "coverage": 0.9,
+    "d": 0.95,
+    "t0_yes": 0.25,
+    "t0_no": 0.25,
+    "c": 12.0,
+    "m": 0.01
+  },
+  "fit_split": "train",
+  "seed": 1001,
+  "n_per_cell": 200,
+  "maxiter": 60,
+  "popsize": 8,
+  "values": {
+    "t_fix": 0.2755471189021888,
+    "cv": 0.5197010183482549,
+    "k_feature": 17.052957802514786,
+    "k_conjunction": 9.008660804158787,
+    "k_spatial": 2.180009926422991,
+    "memory": 6.7077132846375935,
+    "coverage": 0.8536727718178325,
+    "d": 0.9641670238107112,
+    "t0_yes": 0.18882932160437937,
+    "t0_no": 0.20106767223635613,
+    "c": 31.407566815315274,
+    "m": 0.00011312187774707369
+  },
+  "cost": 115.3013809373433,
+  "evaluations": 5856,
+  "fitted": true,
+  "optimizer_message": "Maximum number of iterations has been exceeded.",
+  "seconds": 104.01958140003262
+}

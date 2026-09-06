@@ -1,0 +1,22 @@
+[
+  {
+    "Algorithm": "SHA256",
+    "Hash": "50190CFA880FC810F386F6306E9EF82B120788CE5EA6B572D276C287350391EF",
+    "Path": "G:\\VisualSearchModeling\\data\\Human-data-paper\\2_vs_5.txt"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "88D0180C8DEB8D93D446F55C4683D03067D2C635B6AF67F7E2E84B5694517E6B",
+    "Path": "G:\\VisualSearchModeling\\data\\Human-data-paper\\milliontrialsdataexcel.sit"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "CD3C9266103A84C8BDB449FF342C93E180B67D14F35638259645CDA9B928323F",
+    "Path": "G:\\VisualSearchModeling\\data\\Human-data-paper\\RVvGV.txt"
+  },
+  {
+    "Algorithm": "SHA256",
+    "Hash": "6E06A1AE64FF474FEA053DC08F787DF721ED6B3B8A9BCCB019E6C990E7B537B5",
+    "Path": "G:\\VisualSearchModeling\\data\\Human-data-paper\\RVvRHGV.txt"
+  }
+]

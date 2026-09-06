@@ -1,0 +1,76 @@
+{
+  "model": "gs6_pure_posted",
+  "title": "GS6 engine as posted, guidance and response fitted",
+  "n_fitted": 6,
+  "per_task": false,
+  "bounds": [
+    [
+      "w_feature",
+      1.0,
+      1000.0
+    ],
+    [
+      "w_conjunction",
+      1.0,
+      50.0
+    ],
+    [
+      "w_spatial",
+      1.0,
+      20.0
+    ],
+    [
+      "t0_yes",
+      0.1,
+      0.6
+    ],
+    [
+      "t0_no",
+      0.1,
+      0.6
+    ],
+    [
+      "c",
+      2.0,
+      60.0
+    ]
+  ],
+  "defaults": {
+    "adif_inc": 0.05,
+    "adif_noise_mult": 2.5,
+    "quit_inc": 0.018,
+    "quit_thresh0": 1.5,
+    "quit_down_step": 0.005,
+    "miss_desired": 0.08,
+    "w_feature": 100.0,
+    "w_conjunction": 5.0,
+    "w_spatial": 1.0,
+    "t0_yes": 0.3,
+    "t0_no": 0.3,
+    "c": 12.0
+  },
+  "fit_split": "train",
+  "seed": 1001,
+  "n_per_cell": 200,
+  "maxiter": 60,
+  "popsize": 8,
+  "values": {
+    "adif_inc": 0.05,
+    "adif_noise_mult": 2.5,
+    "quit_inc": 0.018,
+    "quit_thresh0": 1.5,
+    "quit_down_step": 0.005,
+    "miss_desired": 0.08,
+    "w_feature": 514.8147407656195,
+    "w_conjunction": 25.07463418543969,
+    "w_spatial": 1.0919344900660608,
+    "t0_yes": 0.2756969920362864,
+    "t0_no": 0.10526737833692831,
+    "c": 58.03582382403712
+  },
+  "cost": 218.19873620866716,
+  "evaluations": 2928,
+  "fitted": true,
+  "optimizer_message": "Maximum number of iterations has been exceeded.",
+  "seconds": 371.9566316000419
+}

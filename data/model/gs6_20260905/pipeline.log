@@ -1,0 +1,38 @@
+== select
+validation gs6_defaults 702.8 {'feature': 307.9, 'conjunction': 381.1, 'spatial': 1419.3}
+validation gs6_fitted_801 225.4 {'feature': 135.2, 'conjunction': 176.1, 'spatial': 364.9}
+validation gs6_posted_801 377.7 {'feature': 249.5, 'conjunction': 268.8, 'spatial': 614.8}
+validation frozen_shared 175.8 {'feature': 100.3, 'conjunction': 181.2, 'spatial': 245.9}
+validation refit_trigger_501 210.0 {'feature': 112.8, 'conjunction': 145.7, 'spatial': 371.6}
+selected gs6_fitted_801
+== final
+finished gs6_defaults 901
+finished gs6_defaults 902
+finished gs6_posted_801 901
+finished gs6_posted_801 902
+finished gs6_fitted_801 901
+finished gs6_fitted_801 902
+Closing down ACT-R connection.
+== evaluate
+gs6_defaults train {'mean_rt_rmse_ms': 1183.0, 'mean_quantile_rmse_ms': 761.5, 'slopes_pass': 2, 'slopes_total': 6, 'max_miss_difference_points': 11.0, 'timeouts': 0}
+gs6_defaults validation {'mean_rt_rmse_ms': 1312.5, 'mean_quantile_rmse_ms': 849.7, 'slopes_pass': 3, 'slopes_total': 6, 'max_miss_difference_points': 12.9, 'timeouts': 0}
+gs6_defaults test {'mean_rt_rmse_ms': 1251.9, 'mean_quantile_rmse_ms': 795.1, 'slopes_pass': 3, 'slopes_total': 6, 'max_miss_difference_points': 10.8, 'timeouts': 0}
+gs6_defaults parity {'cells': 24, 'exceeds': 0, 'max_abs_z': 3.0174354620692116, 'min_retained_per_cell': 2000}
+gs6_posted_801 train {'mean_rt_rmse_ms': 445.4, 'mean_quantile_rmse_ms': 276.6, 'slopes_pass': 4, 'slopes_total': 6, 'max_miss_difference_points': 16.6, 'timeouts': 0}
+gs6_posted_801 validation {'mean_rt_rmse_ms': 540.3, 'mean_quantile_rmse_ms': 368.1, 'slopes_pass': 3, 'slopes_total': 6, 'max_miss_difference_points': 17.3, 'timeouts': 0}
+gs6_posted_801 test {'mean_rt_rmse_ms': 487.3, 'mean_quantile_rmse_ms': 312.9, 'slopes_pass': 4, 'slopes_total': 6, 'max_miss_difference_points': 14.5, 'timeouts': 0}
+gs6_posted_801 parity {'cells': 24, 'exceeds': 3, 'max_abs_z': 6.834426918160371, 'min_retained_per_cell': 2000}
+gs6_fitted_801 train {'mean_rt_rmse_ms': 122.1, 'mean_quantile_rmse_ms': 97.5, 'slopes_pass': 4, 'slopes_total': 6, 'max_miss_difference_points': 18.6, 'timeouts': 0}
+gs6_fitted_801 validation {'mean_rt_rmse_ms': 246.7, 'mean_quantile_rmse_ms': 191.8, 'slopes_pass': 4, 'slopes_total': 6, 'max_miss_difference_points': 19.3, 'timeouts': 0}
+gs6_fitted_801 test {'mean_rt_rmse_ms': 163.4, 'mean_quantile_rmse_ms': 122.5, 'slopes_pass': 3, 'slopes_total': 6, 'max_miss_difference_points': 18.4, 'timeouts': 0}
+gs6_fitted_801 parity {'cells': 24, 'exceeds': 2, 'max_abs_z': 4.108378069682654, 'min_retained_per_cell': 2000}
+frozen_shared train {'mean_rt_rmse_ms': 160.7, 'mean_quantile_rmse_ms': 151.5, 'slopes_pass': 3, 'slopes_total': 6, 'max_miss_difference_points': 10.1, 'timeouts': 0}
+frozen_shared validation {'mean_rt_rmse_ms': 123.7, 'mean_quantile_rmse_ms': 143.1, 'slopes_pass': 5, 'slopes_total': 6, 'max_miss_difference_points': 16.5, 'timeouts': 0}
+frozen_shared test {'mean_rt_rmse_ms': 108.0, 'mean_quantile_rmse_ms': 127.7, 'slopes_pass': 2, 'slopes_total': 6, 'max_miss_difference_points': 10.9, 'timeouts': 0}
+refit_trigger_501 train {'mean_rt_rmse_ms': 60.0, 'mean_quantile_rmse_ms': 65.7, 'slopes_pass': 5, 'slopes_total': 6, 'max_miss_difference_points': 13.2, 'timeouts': 0}
+refit_trigger_501 validation {'mean_rt_rmse_ms': 191.6, 'mean_quantile_rmse_ms': 173.3, 'slopes_pass': 2, 'slopes_total': 6, 'max_miss_difference_points': 14.7, 'timeouts': 0}
+refit_trigger_501 test {'mean_rt_rmse_ms': 102.5, 'mean_quantile_rmse_ms': 100.1, 'slopes_pass': 4, 'slopes_total': 6, 'max_miss_difference_points': 11.3, 'timeouts': 0}
+== parity
+gs6_fitted_801 frozen-controller parity: 0 of 24 exceed; max |z| = 2.16
+Closing down ACT-R connection.
+exit 0

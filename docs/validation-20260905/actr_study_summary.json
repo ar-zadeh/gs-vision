@@ -1,0 +1,54 @@
+{
+  "contrasts": [
+    {
+      "study": "known_priming",
+      "contrast": "switch minus repeat benefit",
+      "mean": -2.933303342160144,
+      "lo": -10.041141897565069,
+      "hi": 4.174535213244781
+    },
+    {
+      "study": "unknown_priming",
+      "contrast": "switch minus repeat benefit",
+      "mean": -6.189225697558982,
+      "lo": -7.793449865539742,
+      "hi": -4.585001529578221
+    },
+    {
+      "study": "unknown_no_history",
+      "contrast": "switch minus repeat benefit",
+      "mean": -22.474296954940712,
+      "lo": -39.012000173287674,
+      "hi": -5.93659373659375
+    },
+    {
+      "study": "capture",
+      "contrast": "distractor cost",
+      "mean": 7.634110926172582,
+      "lo": 2.5296737917470296,
+      "hi": 12.738548060598134
+    },
+    {
+      "study": "capture_bu3",
+      "contrast": "distractor cost",
+      "mean": 22.968692797528035,
+      "lo": 21.74541399653839,
+      "hi": 24.191971598517682
+    }
+  ],
+  "prevalence": {
+    "miss_increase_points": {
+      "mean": 1.4662924309508747,
+      "lo": 1.2822580645161286,
+      "hi": 1.6503267973856206
+    },
+    "absent_rt_change_ms": {
+      "mean": 87.30104585118835,
+      "lo": 77.1267841695502,
+      "hi": 97.47530753282649
+    }
+  },
+  "uncertainty": "95% seed bootstrap; two ACT-R seeds, not a population CI",
+  "priming_window": "correct target-present trials; includes response repetition effects",
+  "practice": "30 before each block; differs from continuous mirror prevalence practice"
+}

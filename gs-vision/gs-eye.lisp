@@ -202,7 +202,9 @@ Execution is :saccade-init-time + :saccade-base-time + rate * amplitude."
                  (gs-emma-param :saccade-base-time)
                  (* (gs-emma-param :eye-saccade-rate) amplitude))))
     (setf (last-saccade vis-mod) (cons amplitude direction))
-    (seconds->ms (+ (randomize-time prep) (randomize-time exe)))))
+    (let ((prep-ms (round (seconds->ms (randomize-time prep))))
+          (exe-ms (round (seconds->ms (randomize-time exe)))))
+      (values (+ prep-ms exe-ms) prep-ms exe-ms))))
 
 (defun gs-raw-encoding-time (ecc)
   "EMMA's K (-ln f) exp(k eps), in seconds."
@@ -247,6 +249,17 @@ peripheral estimate rather than its behaviour."
       (dolist (i (rest icons) best)
         (when (> (gsi-priority i) (gsi-priority best)) (setf best i))))))
 
+(defun gs-best-guidance (icons)
+  (car (stable-sort (copy-list icons) #'> :key #'gsi-guidance)))
+
+(defun gs-best-saccade (vis-mod icons)
+  (if (revised-saccades vis-mod)
+      (car (stable-sort (copy-list icons) #'>
+             :key (lambda (i) (- (gsi-guidance i)
+                                (* (saccade-proximity vis-mod)
+                                   (gs-ecc-deg vis-mod (gsi-x i) (gsi-y i)))))))
+    (gs-best-by-priority icons)))
+
 (defun gs-request-saccade (vis-mod &optional to)
   "Schedule the next saccade unless one is already in flight.
 
@@ -256,12 +269,12 @@ the caller named one, then the highest-priority candidate inside
 quits the search, but only when nothing is still being identified: items in
 the diffuser are not nothing."
   (unless (saccade-flight vis-mod)
-    (let* ((pending (find-if #'gsd-pending (diffuser vis-mod)))
+    (let* ((pending (find-if #'gsd-pending (reverse (diffuser vis-mod))))
            (target (cond (pending (gethash (gsd-entry pending) (iconic vis-mod)))
                          (to to)
-                         (t (or (gs-best-by-priority
+                         (t (or (gs-best-saccade vis-mod
                                  (gs-saccade-candidates vis-mod (explore-fvf vis-mod)))
-                                (gs-best-by-priority (gs-saccade-candidates vis-mod)))))))
+                                (gs-best-saccade vis-mod (gs-saccade-candidates vis-mod)))))))
       (cond ((null target)
              (when (null (diffuser vis-mod))
                (gs-quit-search vis-mod 'no-candidate)))
@@ -271,27 +284,40 @@ the diffuser are not nothing."
                     (dy (- (gsi-y target) (aref eye 1)))
                     (px (sqrt (+ (* dx dx) (* dy dy))))
                     (amp (pm-pixels-to-angle px))
-                    (dir (atan (- dy) dx))
-                    (ms (gs-saccade-time vis-mod amp dir)))
+                    (dir (atan (- dy) dx)))
+               (multiple-value-bind (ms prep exe) (gs-saccade-time vis-mod amp dir)
+               (declare (ignore ms))
                (setf (saccade-flight vis-mod) t)
                (schedule-event-now nil :module :vision :output 'medium :maintenance t
                                        :details (format nil "GS-SACCADE ~,0f ~,0f -> ~,0f ~,0f amp ~,1f"
                                                         (aref eye 0) (aref eye 1)
                                                         (gsi-x target) (gsi-y target) amp))
                (setf (sacc-event vis-mod)
-                     (schedule-event-relative ms 'gs-saccade-land :time-in-ms t
+                     (schedule-event-relative prep 'gs-saccade-execute :time-in-ms t
                                               :module :vision :destination :vision
                                               :output nil :maintenance t
-                                              :params (list (gsi-entry target))))))))))
+                                              :params (list (gsi-entry target) exe))))))))))
+
+(defun gs-saccade-execute (vis-mod entry duration)
+  (when (search-active vis-mod)
+    (gs-close-fixation vis-mod)
+    (setf (eye-moving vis-mod) t)
+    (gs-record-event vis-mod "saccade-execute" entry)
+    (setf (sacc-event vis-mod)
+          (schedule-event-relative duration 'gs-saccade-land :time-in-ms t
+                                   :module :vision :destination :vision
+                                   :output nil :maintenance t :params (list entry)))))
 
 (defun gs-saccade-land (vis-mod entry)
   "The eye arrives: redraw acuity, recompute priority, resume the loop."
   (bt:with-recursive-lock-held ((gs-lock vis-mod))
+    (unless (search-active vis-mod) (return-from gs-saccade-land nil))
     (setf (saccade-flight vis-mod) nil
+          (eye-moving vis-mod) nil
           (sacc-event vis-mod) nil)
     (let ((icon (gethash entry (iconic vis-mod)))
           (now (mp-time-ms)))
-      (when icon
+      (when (and icon (search-active vis-mod))
         (let* ((eye (eye-xyz vis-mod))
                (px (sqrt (+ (expt (- (gsi-x icon) (aref eye 0)) 2)
                             (expt (- (gsi-y icon) (aref eye 1)) 2))))
@@ -300,13 +326,9 @@ the diffuser are not nothing."
                       (gs-gaussian (gsi-x icon) sd)
                       (gs-gaussian (gsi-y icon) sd))))
       (incf (n-fixations vis-mod))
-      (when (log-fixations vis-mod)
-        (push (list (fix-start vis-mod)
-                    (aref (eye-xyz vis-mod) 0) (aref (eye-xyz vis-mod) 1)
-                    (- now (fix-start vis-mod)))
-              (fixation-log vis-mod)))
       (setf (fix-start vis-mod) now
             (last-landed vis-mod) entry)
+      (gs-record-event vis-mod "landing" entry)
       (schedule-event-now nil :module :vision :output 'medium :maintenance t
                               :details (format nil "GS-FIXATE ~,0f ~,0f"
                                                (aref (eye-xyz vis-mod) 0)

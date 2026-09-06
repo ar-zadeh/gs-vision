@@ -1,0 +1,794 @@
+{
+  "schema_version": 1,
+  "human": "human",
+  "frozen": "frozen.json",
+  "runs": [
+    {
+      "id": "unfitted",
+      "role": "unfitted",
+      "trials": [
+        "unfitted_seed401_trials.csv",
+        "unfitted_seed402_trials.csv"
+      ],
+      "fixations": [
+        "unfitted_seed401_fixations.csv",
+        "unfitted_seed402_fixations.csv"
+      ],
+      "mirror": [
+        "unfitted_mirror_seed401.json",
+        "unfitted_mirror_seed402.json"
+      ],
+      "parameters": {
+        "schema_version": 1,
+        "params": {
+          "guiding_features": [
+            "color",
+            "orient",
+            "size",
+            "lum"
+          ],
+          "select_interval": 0.05,
+          "diffuser_capacity": 5,
+          "choice_beta": 4.0,
+          "saccade_margin": 0.25,
+          "saccade_proximity": 0.1,
+          "revised_saccades": true,
+          "quit_noise_free": true,
+          "recognition_extra": false,
+          "id_drift": 0.25,
+          "id_threshold": 0.03,
+          "quit_delta": 0.02,
+          "memory": 4,
+          "attn_fvf": 8.0,
+          "explore_fvf": 12.0,
+          "max_fixation": 0.4,
+          "iconic_span": 4.0,
+          "acuity_theta": [
+            [
+              "color",
+              0.1
+            ],
+            [
+              "orient",
+              0.2
+            ],
+            [
+              "shape",
+              0.4
+            ],
+            [
+              "size",
+              0.2
+            ],
+            [
+              "lum",
+              0.1
+            ]
+          ],
+          "acuity_sigma": 0.5,
+          "w_bu": 0.5,
+          "w_td": 1.0,
+          "w_h": 0.3,
+          "w_v": 0.0,
+          "w_s": 1.0,
+          "w_e": 0.02,
+          "noise": 0.2,
+          "priming_tau": 10.0,
+          "qt_init": 1.0,
+          "qt_step": 0.05,
+          "error_goal": 0.08,
+          "feedback_window": 50,
+          "emma": true,
+          "saccade_feat_time": 0.05,
+          "saccade_init_time": 0.05,
+          "saccade_base_time": 0.02,
+          "eye_saccade_rate": 0.002,
+          "visual_encoding_factor": 0.006,
+          "visual_encoding_exponent": 0.4,
+          "vis_obj_freq": 0.1,
+          "visual_attention_latency": 0.085,
+          "motor_error": 0.0,
+          "t_nondecision": 0.16,
+          "response_first_extra": 0.15,
+          "response_switch_extra": 0.1,
+          "trial_gap": 2.0,
+          "max_trial_s": 20.0
+        },
+        "units": {
+          "guiding_features": "model units",
+          "select_interval": "seconds",
+          "diffuser_capacity": "items",
+          "choice_beta": "1/priority",
+          "saccade_margin": "priority",
+          "saccade_proximity": "priority/degree",
+          "revised_saccades": "model units",
+          "quit_noise_free": "model units",
+          "recognition_extra": "model units",
+          "id_drift": "evidence/second",
+          "id_threshold": "evidence",
+          "quit_delta": "model units",
+          "memory": "items",
+          "attn_fvf": "degrees",
+          "explore_fvf": "degrees",
+          "max_fixation": "seconds",
+          "iconic_span": "seconds",
+          "acuity_theta": "model units",
+          "acuity_sigma": "model units",
+          "w_bu": "model units",
+          "w_td": "model units",
+          "w_h": "model units",
+          "w_v": "model units",
+          "w_s": "model units",
+          "w_e": "priority/degree",
+          "noise": "model units",
+          "priming_tau": "seconds",
+          "qt_init": "rejections/effective item",
+          "qt_step": "model units",
+          "error_goal": "probability",
+          "feedback_window": "trials",
+          "emma": "model units",
+          "saccade_feat_time": "seconds",
+          "saccade_init_time": "seconds",
+          "saccade_base_time": "seconds",
+          "eye_saccade_rate": "seconds/degree",
+          "visual_encoding_factor": "model units",
+          "visual_encoding_exponent": "model units",
+          "vis_obj_freq": "model units",
+          "visual_attention_latency": "seconds",
+          "motor_error": "probability",
+          "t_nondecision": "seconds",
+          "response_first_extra": "seconds",
+          "response_switch_extra": "seconds",
+          "trial_gap": "seconds",
+          "max_trial_s": "seconds"
+        },
+        "python_response_parameters": [
+          "motor_error",
+          "response_first_extra",
+          "response_switch_extra",
+          "t_nondecision"
+        ],
+        "protocol_parameters": [
+          "max_trial_s",
+          "trial_gap"
+        ],
+        "config_hash": "5e4ae13080671207736bc3a2ce13e0fe0e5016df921ef20f52721d06ef9463ec"
+      },
+      "seeds": [
+        401,
+        402
+      ],
+      "n_per_cell": 250
+    },
+    {
+      "id": "shared",
+      "role": "primary",
+      "trials": [
+        "shared_seed401_trials.csv",
+        "shared_seed402_trials.csv"
+      ],
+      "fixations": [
+        "shared_seed401_fixations.csv",
+        "shared_seed402_fixations.csv"
+      ],
+      "mirror": [
+        "shared_mirror_seed401.json",
+        "shared_mirror_seed402.json"
+      ],
+      "parameters": {
+        "schema_version": 1,
+        "params": {
+          "guiding_features": [
+            "color",
+            "orient",
+            "size",
+            "lum"
+          ],
+          "select_interval": 0.027,
+          "diffuser_capacity": 5,
+          "choice_beta": 4.0,
+          "saccade_margin": 0.25,
+          "saccade_proximity": 0.1,
+          "revised_saccades": true,
+          "quit_noise_free": true,
+          "recognition_extra": false,
+          "id_drift": 0.25,
+          "id_threshold": 0.0223703621815062,
+          "quit_delta": 0.03320905063354566,
+          "memory": 11,
+          "attn_fvf": 10.98232973272604,
+          "explore_fvf": 12.0,
+          "max_fixation": 0.4,
+          "iconic_span": 4.0,
+          "acuity_theta": [
+            [
+              "color",
+              0.1
+            ],
+            [
+              "orient",
+              0.2
+            ],
+            [
+              "shape",
+              0.4
+            ],
+            [
+              "size",
+              0.2
+            ],
+            [
+              "lum",
+              0.1
+            ]
+          ],
+          "acuity_sigma": 0.5,
+          "w_bu": 1.0491781257842456,
+          "w_td": 1.0,
+          "w_h": 0.3,
+          "w_v": 0.0,
+          "w_s": 1.0,
+          "w_e": 0.02,
+          "noise": 0.2,
+          "priming_tau": 10.0,
+          "qt_init": 1.0,
+          "qt_step": 0.05,
+          "error_goal": 0.08,
+          "feedback_window": 50,
+          "emma": true,
+          "saccade_feat_time": 0.05,
+          "saccade_init_time": 0.05,
+          "saccade_base_time": 0.02,
+          "eye_saccade_rate": 0.002,
+          "visual_encoding_factor": 0.006,
+          "visual_encoding_exponent": 0.4,
+          "vis_obj_freq": 0.1,
+          "visual_attention_latency": 0.085,
+          "motor_error": 0.0,
+          "t_nondecision": 0.16,
+          "response_first_extra": 0.15,
+          "response_switch_extra": 0.1,
+          "trial_gap": 2.0,
+          "max_trial_s": 20.0
+        },
+        "units": {
+          "guiding_features": "model units",
+          "select_interval": "seconds",
+          "diffuser_capacity": "items",
+          "choice_beta": "1/priority",
+          "saccade_margin": "priority",
+          "saccade_proximity": "priority/degree",
+          "revised_saccades": "model units",
+          "quit_noise_free": "model units",
+          "recognition_extra": "model units",
+          "id_drift": "evidence/second",
+          "id_threshold": "evidence",
+          "quit_delta": "model units",
+          "memory": "items",
+          "attn_fvf": "degrees",
+          "explore_fvf": "degrees",
+          "max_fixation": "seconds",
+          "iconic_span": "seconds",
+          "acuity_theta": "model units",
+          "acuity_sigma": "model units",
+          "w_bu": "model units",
+          "w_td": "model units",
+          "w_h": "model units",
+          "w_v": "model units",
+          "w_s": "model units",
+          "w_e": "priority/degree",
+          "noise": "model units",
+          "priming_tau": "seconds",
+          "qt_init": "rejections/effective item",
+          "qt_step": "model units",
+          "error_goal": "probability",
+          "feedback_window": "trials",
+          "emma": "model units",
+          "saccade_feat_time": "seconds",
+          "saccade_init_time": "seconds",
+          "saccade_base_time": "seconds",
+          "eye_saccade_rate": "seconds/degree",
+          "visual_encoding_factor": "model units",
+          "visual_encoding_exponent": "model units",
+          "vis_obj_freq": "model units",
+          "visual_attention_latency": "seconds",
+          "motor_error": "probability",
+          "t_nondecision": "seconds",
+          "response_first_extra": "seconds",
+          "response_switch_extra": "seconds",
+          "trial_gap": "seconds",
+          "max_trial_s": "seconds"
+        },
+        "python_response_parameters": [
+          "motor_error",
+          "response_first_extra",
+          "response_switch_extra",
+          "t_nondecision"
+        ],
+        "protocol_parameters": [
+          "max_trial_s",
+          "trial_gap"
+        ],
+        "config_hash": "ce4c83ba871dc592f7333c8445061e8604180736655afa40d1bb449976d44d64"
+      },
+      "seeds": [
+        401,
+        402
+      ],
+      "n_per_cell": 1000
+    },
+    {
+      "id": "task_feature",
+      "role": "secondary",
+      "trials": [
+        "task_feature_seed401_trials.csv",
+        "task_feature_seed402_trials.csv"
+      ],
+      "fixations": [
+        "task_feature_seed401_fixations.csv",
+        "task_feature_seed402_fixations.csv"
+      ],
+      "mirror": [
+        "task_feature_mirror_seed401.json",
+        "task_feature_mirror_seed402.json"
+      ],
+      "parameters": {
+        "schema_version": 1,
+        "params": {
+          "guiding_features": [
+            "color",
+            "orient",
+            "size",
+            "lum"
+          ],
+          "select_interval": 0.027,
+          "diffuser_capacity": 5,
+          "choice_beta": 4.0,
+          "saccade_margin": 0.25,
+          "saccade_proximity": 0.1,
+          "revised_saccades": true,
+          "quit_noise_free": true,
+          "recognition_extra": false,
+          "id_drift": 0.25,
+          "id_threshold": 0.0223703621815062,
+          "quit_delta": 0.03320905063354566,
+          "memory": 11,
+          "attn_fvf": 10.98232973272604,
+          "explore_fvf": 12.0,
+          "max_fixation": 0.4,
+          "iconic_span": 4.0,
+          "acuity_theta": [
+            [
+              "color",
+              0.1
+            ],
+            [
+              "orient",
+              0.2
+            ],
+            [
+              "shape",
+              0.4
+            ],
+            [
+              "size",
+              0.2
+            ],
+            [
+              "lum",
+              0.1
+            ]
+          ],
+          "acuity_sigma": 0.5,
+          "w_bu": 1.0491781257842456,
+          "w_td": 1.0,
+          "w_h": 0.3,
+          "w_v": 0.0,
+          "w_s": 1.0,
+          "w_e": 0.02,
+          "noise": 0.2,
+          "priming_tau": 10.0,
+          "qt_init": 1.0,
+          "qt_step": 0.05,
+          "error_goal": 0.08,
+          "feedback_window": 50,
+          "emma": true,
+          "saccade_feat_time": 0.05,
+          "saccade_init_time": 0.05,
+          "saccade_base_time": 0.02,
+          "eye_saccade_rate": 0.002,
+          "visual_encoding_factor": 0.006,
+          "visual_encoding_exponent": 0.4,
+          "vis_obj_freq": 0.1,
+          "visual_attention_latency": 0.085,
+          "motor_error": 0.0,
+          "t_nondecision": 0.16,
+          "response_first_extra": 0.15,
+          "response_switch_extra": 0.1,
+          "trial_gap": 2.0,
+          "max_trial_s": 20.0
+        },
+        "units": {
+          "guiding_features": "model units",
+          "select_interval": "seconds",
+          "diffuser_capacity": "items",
+          "choice_beta": "1/priority",
+          "saccade_margin": "priority",
+          "saccade_proximity": "priority/degree",
+          "revised_saccades": "model units",
+          "quit_noise_free": "model units",
+          "recognition_extra": "model units",
+          "id_drift": "evidence/second",
+          "id_threshold": "evidence",
+          "quit_delta": "model units",
+          "memory": "items",
+          "attn_fvf": "degrees",
+          "explore_fvf": "degrees",
+          "max_fixation": "seconds",
+          "iconic_span": "seconds",
+          "acuity_theta": "model units",
+          "acuity_sigma": "model units",
+          "w_bu": "model units",
+          "w_td": "model units",
+          "w_h": "model units",
+          "w_v": "model units",
+          "w_s": "model units",
+          "w_e": "priority/degree",
+          "noise": "model units",
+          "priming_tau": "seconds",
+          "qt_init": "rejections/effective item",
+          "qt_step": "model units",
+          "error_goal": "probability",
+          "feedback_window": "trials",
+          "emma": "model units",
+          "saccade_feat_time": "seconds",
+          "saccade_init_time": "seconds",
+          "saccade_base_time": "seconds",
+          "eye_saccade_rate": "seconds/degree",
+          "visual_encoding_factor": "model units",
+          "visual_encoding_exponent": "model units",
+          "vis_obj_freq": "model units",
+          "visual_attention_latency": "seconds",
+          "motor_error": "probability",
+          "t_nondecision": "seconds",
+          "response_first_extra": "seconds",
+          "response_switch_extra": "seconds",
+          "trial_gap": "seconds",
+          "max_trial_s": "seconds"
+        },
+        "python_response_parameters": [
+          "motor_error",
+          "response_first_extra",
+          "response_switch_extra",
+          "t_nondecision"
+        ],
+        "protocol_parameters": [
+          "max_trial_s",
+          "trial_gap"
+        ],
+        "config_hash": "ce4c83ba871dc592f7333c8445061e8604180736655afa40d1bb449976d44d64"
+      },
+      "seeds": [
+        401,
+        402
+      ],
+      "n_per_cell": 1000,
+      "reuse_shared_simulation": true
+    },
+    {
+      "id": "task_conjunction",
+      "role": "secondary",
+      "trials": [
+        "task_conjunction_seed401_trials.csv",
+        "task_conjunction_seed402_trials.csv"
+      ],
+      "fixations": [
+        "task_conjunction_seed401_fixations.csv",
+        "task_conjunction_seed402_fixations.csv"
+      ],
+      "mirror": [
+        "task_conjunction_mirror_seed401.json",
+        "task_conjunction_mirror_seed402.json"
+      ],
+      "parameters": {
+        "schema_version": 1,
+        "params": {
+          "guiding_features": [
+            "color",
+            "orient",
+            "size",
+            "lum"
+          ],
+          "select_interval": 0.03,
+          "diffuser_capacity": 3,
+          "choice_beta": 2.0,
+          "saccade_margin": 0.25,
+          "saccade_proximity": 0.1,
+          "revised_saccades": true,
+          "quit_noise_free": true,
+          "recognition_extra": false,
+          "id_drift": 0.25,
+          "id_threshold": 0.03,
+          "quit_delta": 0.02,
+          "memory": 16,
+          "attn_fvf": 16.0,
+          "explore_fvf": 12.0,
+          "max_fixation": 0.2,
+          "iconic_span": 4.0,
+          "acuity_theta": [
+            [
+              "color",
+              0.1
+            ],
+            [
+              "orient",
+              0.2
+            ],
+            [
+              "shape",
+              0.4
+            ],
+            [
+              "size",
+              0.2
+            ],
+            [
+              "lum",
+              0.1
+            ]
+          ],
+          "acuity_sigma": 0.5,
+          "w_bu": 0.5,
+          "w_td": 1.0,
+          "w_h": 0.3,
+          "w_v": 0.0,
+          "w_s": 1.0,
+          "w_e": 0.1,
+          "noise": 0.3,
+          "priming_tau": 10.0,
+          "qt_init": 1.0,
+          "qt_step": 0.05,
+          "error_goal": 0.08,
+          "feedback_window": 50,
+          "emma": true,
+          "saccade_feat_time": 0.05,
+          "saccade_init_time": 0.05,
+          "saccade_base_time": 0.02,
+          "eye_saccade_rate": 0.002,
+          "visual_encoding_factor": 0.006,
+          "visual_encoding_exponent": 0.4,
+          "vis_obj_freq": 0.1,
+          "visual_attention_latency": 0.085,
+          "motor_error": 0.0,
+          "t_nondecision": 0.16,
+          "response_first_extra": 0.15,
+          "response_switch_extra": 0.1,
+          "trial_gap": 2.0,
+          "max_trial_s": 20.0
+        },
+        "units": {
+          "guiding_features": "model units",
+          "select_interval": "seconds",
+          "diffuser_capacity": "items",
+          "choice_beta": "1/priority",
+          "saccade_margin": "priority",
+          "saccade_proximity": "priority/degree",
+          "revised_saccades": "model units",
+          "quit_noise_free": "model units",
+          "recognition_extra": "model units",
+          "id_drift": "evidence/second",
+          "id_threshold": "evidence",
+          "quit_delta": "model units",
+          "memory": "items",
+          "attn_fvf": "degrees",
+          "explore_fvf": "degrees",
+          "max_fixation": "seconds",
+          "iconic_span": "seconds",
+          "acuity_theta": "model units",
+          "acuity_sigma": "model units",
+          "w_bu": "model units",
+          "w_td": "model units",
+          "w_h": "model units",
+          "w_v": "model units",
+          "w_s": "model units",
+          "w_e": "priority/degree",
+          "noise": "model units",
+          "priming_tau": "seconds",
+          "qt_init": "rejections/effective item",
+          "qt_step": "model units",
+          "error_goal": "probability",
+          "feedback_window": "trials",
+          "emma": "model units",
+          "saccade_feat_time": "seconds",
+          "saccade_init_time": "seconds",
+          "saccade_base_time": "seconds",
+          "eye_saccade_rate": "seconds/degree",
+          "visual_encoding_factor": "model units",
+          "visual_encoding_exponent": "model units",
+          "vis_obj_freq": "model units",
+          "visual_attention_latency": "seconds",
+          "motor_error": "probability",
+          "t_nondecision": "seconds",
+          "response_first_extra": "seconds",
+          "response_switch_extra": "seconds",
+          "trial_gap": "seconds",
+          "max_trial_s": "seconds"
+        },
+        "python_response_parameters": [
+          "motor_error",
+          "response_first_extra",
+          "response_switch_extra",
+          "t_nondecision"
+        ],
+        "protocol_parameters": [
+          "max_trial_s",
+          "trial_gap"
+        ],
+        "config_hash": "1b840e8ea4f0ee30f383f70799bbfb710d3b6f2087517766b86ff579f4612cf7"
+      },
+      "seeds": [
+        401,
+        402
+      ],
+      "n_per_cell": 1000
+    },
+    {
+      "id": "task_spatial",
+      "role": "secondary",
+      "trials": [
+        "task_spatial_seed401_trials.csv",
+        "task_spatial_seed402_trials.csv"
+      ],
+      "fixations": [
+        "task_spatial_seed401_fixations.csv",
+        "task_spatial_seed402_fixations.csv"
+      ],
+      "mirror": [
+        "task_spatial_mirror_seed401.json",
+        "task_spatial_mirror_seed402.json"
+      ],
+      "parameters": {
+        "schema_version": 1,
+        "params": {
+          "guiding_features": [
+            "color",
+            "orient",
+            "size",
+            "lum"
+          ],
+          "select_interval": 0.027,
+          "diffuser_capacity": 5,
+          "choice_beta": 4.0,
+          "saccade_margin": 0.25,
+          "saccade_proximity": 0.1,
+          "revised_saccades": true,
+          "quit_noise_free": true,
+          "recognition_extra": false,
+          "id_drift": 0.25,
+          "id_threshold": 0.0223703621815062,
+          "quit_delta": 0.03320905063354566,
+          "memory": 11,
+          "attn_fvf": 10.98232973272604,
+          "explore_fvf": 12.0,
+          "max_fixation": 0.4,
+          "iconic_span": 4.0,
+          "acuity_theta": [
+            [
+              "color",
+              0.1
+            ],
+            [
+              "orient",
+              0.2
+            ],
+            [
+              "shape",
+              0.4
+            ],
+            [
+              "size",
+              0.2
+            ],
+            [
+              "lum",
+              0.1
+            ]
+          ],
+          "acuity_sigma": 0.5,
+          "w_bu": 1.0491781257842456,
+          "w_td": 1.0,
+          "w_h": 0.3,
+          "w_v": 0.0,
+          "w_s": 1.0,
+          "w_e": 0.02,
+          "noise": 0.2,
+          "priming_tau": 10.0,
+          "qt_init": 1.0,
+          "qt_step": 0.05,
+          "error_goal": 0.08,
+          "feedback_window": 50,
+          "emma": true,
+          "saccade_feat_time": 0.05,
+          "saccade_init_time": 0.05,
+          "saccade_base_time": 0.02,
+          "eye_saccade_rate": 0.002,
+          "visual_encoding_factor": 0.006,
+          "visual_encoding_exponent": 0.4,
+          "vis_obj_freq": 0.1,
+          "visual_attention_latency": 0.085,
+          "motor_error": 0.0,
+          "t_nondecision": 0.16,
+          "response_first_extra": 0.15,
+          "response_switch_extra": 0.1,
+          "trial_gap": 2.0,
+          "max_trial_s": 20.0
+        },
+        "units": {
+          "guiding_features": "model units",
+          "select_interval": "seconds",
+          "diffuser_capacity": "items",
+          "choice_beta": "1/priority",
+          "saccade_margin": "priority",
+          "saccade_proximity": "priority/degree",
+          "revised_saccades": "model units",
+          "quit_noise_free": "model units",
+          "recognition_extra": "model units",
+          "id_drift": "evidence/second",
+          "id_threshold": "evidence",
+          "quit_delta": "model units",
+          "memory": "items",
+          "attn_fvf": "degrees",
+          "explore_fvf": "degrees",
+          "max_fixation": "seconds",
+          "iconic_span": "seconds",
+          "acuity_theta": "model units",
+          "acuity_sigma": "model units",
+          "w_bu": "model units",
+          "w_td": "model units",
+          "w_h": "model units",
+          "w_v": "model units",
+          "w_s": "model units",
+          "w_e": "priority/degree",
+          "noise": "model units",
+          "priming_tau": "seconds",
+          "qt_init": "rejections/effective item",
+          "qt_step": "model units",
+          "error_goal": "probability",
+          "feedback_window": "trials",
+          "emma": "model units",
+          "saccade_feat_time": "seconds",
+          "saccade_init_time": "seconds",
+          "saccade_base_time": "seconds",
+          "eye_saccade_rate": "seconds/degree",
+          "visual_encoding_factor": "model units",
+          "visual_encoding_exponent": "model units",
+          "vis_obj_freq": "model units",
+          "visual_attention_latency": "seconds",
+          "motor_error": "probability",
+          "t_nondecision": "seconds",
+          "response_first_extra": "seconds",
+          "response_switch_extra": "seconds",
+          "trial_gap": "seconds",
+          "max_trial_s": "seconds"
+        },
+        "python_response_parameters": [
+          "motor_error",
+          "response_first_extra",
+          "response_switch_extra",
+          "t_nondecision"
+        ],
+        "protocol_parameters": [
+          "max_trial_s",
+          "trial_gap"
+        ],
+        "config_hash": "ce4c83ba871dc592f7333c8445061e8604180736655afa40d1bb449976d44d64"
+      },
+      "seeds": [
+        401,
+        402
+      ],
+      "n_per_cell": 1000,
+      "reuse_shared_simulation": true
+    }
+  ]
+}

@@ -141,7 +141,7 @@ class Display:
 
 # --- item constructors -----------------------------------------------------
 
-_HUE = {"red": 0.0, "green": 120.0, "white": 0.0}
+_HUE = {"red": 0.0, "green": 120.0, "blue": 240.0, "white": 0.0}
 
 
 def _bar(x_deg, y_deg, color, vertical, is_target):

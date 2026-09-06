@@ -1,0 +1,106 @@
+{
+  "model": "cgs",
+  "title": "Competitive Guided Search, shared timing",
+  "n_fitted": 12,
+  "per_task": false,
+  "bounds": [
+    [
+      "mu",
+      0.05,
+      2.0
+    ],
+    [
+      "theta",
+      0.01,
+      0.1
+    ],
+    [
+      "t0_yes",
+      0.15,
+      0.6
+    ],
+    [
+      "t0_no",
+      0.15,
+      0.6
+    ],
+    [
+      "c",
+      2.0,
+      60.0
+    ],
+    [
+      "m",
+      0.0,
+      0.05
+    ],
+    [
+      "w_t_feature",
+      0.5,
+      1000.0
+    ],
+    [
+      "dw_feature",
+      0.001,
+      1000.0
+    ],
+    [
+      "w_t_conjunction",
+      0.5,
+      50.0
+    ],
+    [
+      "dw_conjunction",
+      0.001,
+      5.0
+    ],
+    [
+      "w_t_spatial",
+      0.5,
+      20.0
+    ],
+    [
+      "dw_spatial",
+      0.001,
+      1.0
+    ]
+  ],
+  "defaults": {
+    "mu": 0.252,
+    "theta": 0.029,
+    "t0_yes": 0.413,
+    "t0_no": 0.41,
+    "c": 11.8,
+    "m": 0.012,
+    "w_t_feature": 600.0,
+    "dw_feature": 870.0,
+    "w_t_conjunction": 4.96,
+    "dw_conjunction": 0.162,
+    "w_t_spatial": 1.51,
+    "dw_spatial": 0.019
+  },
+  "fit_split": "train",
+  "seed": 1001,
+  "n_per_cell": 200,
+  "maxiter": 60,
+  "popsize": 8,
+  "values": {
+    "mu": 0.5591634694408859,
+    "theta": 0.09783556053010019,
+    "t0_yes": 0.27488347350747355,
+    "t0_no": 0.23930849593641904,
+    "c": 42.28774260132093,
+    "m": 0.010628799116588698,
+    "w_t_feature": 785.4698863635044,
+    "dw_feature": 497.010748454721,
+    "w_t_conjunction": 23.690836187768348,
+    "dw_conjunction": 2.5875838067824004,
+    "w_t_spatial": 1.8653024412258166,
+    "dw_spatial": 0.05490716315003613
+  },
+  "cost": 86.01351812486239,
+  "evaluations": 5856,
+  "fitted": true,
+  "optimizer_message": "Maximum number of iterations has been exceeded.",
+  "seconds": 31.760086399968714
+}

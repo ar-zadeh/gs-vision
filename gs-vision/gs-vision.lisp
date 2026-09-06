@@ -298,6 +298,20 @@ module-internal selection step."
     (when (typep v 'gs-vision-module)
       (reverse (fixation-log v)))))
 
+(defun gs-event-log-command ()
+  (reverse (event-log (get-module :vision))))
+
+(defun gs-cancel-search-command ()
+  "Close and cancel a timed-out trial, preserving its diagnostics."
+  (gs-quit-search (get-module :vision) 'timeout))
+
+(defun gs-benchmark-gaze-command (x y)
+  "Untimed fixation-cross placement. Reset preparation history, retain learning."
+  (let ((v (get-module :vision)))
+    (gs-set-eye v x y)
+    (setf (last-saccade v) nil)
+    t))
+
 (defun gs-search-stats-command ()
   "(fixations rejections elapsed-ms quit-reason) for the last search."
   (let ((v (get-module :vision)))
@@ -335,6 +349,9 @@ abandoned trial would silently take the rest of the block with it."
 
 (dolist (c '(("gs-fixation-log" gs-fixation-log-command
               "Fixations of the last search as (time x y duration). No params.")
+             ("gs-event-log" gs-event-log-command "Timestamped search events. No params.")
+             ("gs-cancel-search" gs-cancel-search-command "Cancel a timeout and retain diagnostics.")
+             ("gs-benchmark-gaze" gs-benchmark-gaze-command "Untimed fixation cross. Params: x y.")
              ("gs-search-stats" gs-search-stats-command
               "Last search as (fixations rejections elapsed-ms quit-reason). No params.")
              ("gs-reset-search" gs-reset-search-command

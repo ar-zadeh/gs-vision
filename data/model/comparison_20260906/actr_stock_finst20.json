@@ -1,0 +1,38 @@
+{
+  "model": "actr_stock_finst20",
+  "title": "ACT-R stock vision module, 20 finsts (mirror)",
+  "n_fitted": 0,
+  "per_task": false,
+  "bounds": [],
+  "defaults": {
+    "attn_latency": 0.085,
+    "productions": 3.0,
+    "finsts": 20.0,
+    "count_strategy": 0.0,
+    "t0_yes": 0.16,
+    "t0_no": 0.16,
+    "measured_extras": 1.0,
+    "c": 0.0,
+    "m": 0.0
+  },
+  "fit_split": "train",
+  "seed": 1001,
+  "n_per_cell": 200,
+  "maxiter": 60,
+  "popsize": 8,
+  "values": {
+    "attn_latency": 0.085,
+    "productions": 3.0,
+    "finsts": 20.0,
+    "count_strategy": 0.0,
+    "t0_yes": 0.16,
+    "t0_no": 0.16,
+    "measured_extras": 1.0,
+    "c": 0.0,
+    "m": 0.0
+  },
+  "cost": null,
+  "evaluations": 0,
+  "fitted": false,
+  "seconds": 2.200016751885414e-06
+}

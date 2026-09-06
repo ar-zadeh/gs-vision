@@ -1,0 +1,74 @@
+This is SBCL 2.6.3, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+To load "bordeaux-threads":
+  Load 1 ASDF system:
+    bordeaux-threads
+; Loading "bordeaux-threads"
+
+To load "usocket":
+  Load 1 ASDF system:
+    usocket
+; Loading "usocket"
+
+To load "cl-json":
+  Load 1 ASDF system:
+    cl-json
+; Loading "cl-json"
+
+Trying to open server at "172.31.240.1":2650
+Server started on port 2650
+
+The ACT-R remote command dispatcher has been started
+
+##################################
+ACT-R 7 Version Information:
+Software              : 7.31.4-<3489:2026-06-10> 
+=================================================
+Components
+-------------------------------------------------
+AGI             : 6.0        Manager for the AGI windows
+CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+CURSOR-TABLE    : 4.0        Record the cursor devices that are used.
+HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+KEYBOARD-TABLE  : 3.1        Record the keyboards used for each model.
+NAMING          : 2.0        Provides new symbol generation for the system.
+STEPPER         : 7.0        Stepper interface global information
+TRACE-HISTORY   : 1.0        Component for recording trace information
+=================================================
+Modules
+-------------------------------------------------
+AUDICON-HISTORY       : 3.1        Module to record audicon changes.
+AUDIO                 : 9          A module which gives the model an auditory attentional system
+BOLD                  : 4.3        A module to produce BOLD response predictions from buffer request activity.
+BUFFER-HISTORY        : 2.1        Module to record buffer change history.
+BUFFER-PARAMS         : 1.0        Module to hold and control the buffer parameters
+BUFFER-TRACE          : 3.1        A module that provides a buffer based history mechanism.
+CENTRAL-PARAMETERS    : 2.0        a module that maintains parameters used by other modules
+DECLARATIVE           : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+DEVICE                : 7.3        The device interface for a model
+GOAL                  : 3.0        The goal module creates new goals for the goal buffer
+HISTORY-RECORDER      : 2.2        Module to support the saving and accessing of information as a model runs.
+IMAGINAL              : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+MOTOR                 : 8.0        Module to provide a model with virtual hands
+NAMING-MODULE         : 3.0        Provides safe and repeatable new name generation for models.
+PRINTING-MODULE       : 2.1        Coordinates output of the model.
+PROCEDURAL            : 8.3        The procedural module handles production definition and execution
+PRODUCTION-COMPILATION: 6.2        A module that assists the primary procedural module with compiling productions
+PRODUCTION-HISTORY    : 2.1        Module to record production history for display in the environment.
+RANDOM-MODULE         : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+RETRIEVAL-HISTORY     : 2.1        Module to record retrieval history data.
+SPEECH                : 7.2        A module to provide a model with the ability to speak
+STEPPER               : 7.0        Store the model specific information for the stepper interface.
+TEMPORAL              : 4.0        The temporal module is used to estimate short time intervals
+UTILITY               : 6.0        A module that computes production utilities
+VISICON-HISTORY       : 3.1        Module to record visicon changes.
+VISION                : 11.1       A module to provide a model with a visual attention system
+
+######### Loading of ACT-R 7 is complete #########
+
+######### gs6-vision loaded: :vision is now GS6-1.0 #########

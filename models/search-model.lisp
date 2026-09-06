@@ -8,8 +8,8 @@
 ;;; selection, identification, saccades and quitting on its own events, one
 ;;; production reads the result and presses a key, and one production reports
 ;;; the outcome back so the adaptive quitting threshold and the priming traces
-;;; can learn.  Those three productions are the 50 ms each that section 11 of
-;;; the handoff says must show up in the intercept and must not be tuned away.
+;;; can learn. Search and response productions are inside RT; the feedback
+;;; production follows keypress and is outside RT. Motor timing is unchanged.
 ;;;
 ;;; The harness sets up each trial with two remote commands defined at the
 ;;; bottom of this file: GS-TRIAL-SETUP and GS-TRIAL-FEEDBACK.
@@ -89,6 +89,22 @@
        state         searching)
 
   ;; --- respond ---------------------------------------------------------
+  ;; Orientation-singleton analogue used only by the capture experiment.
+  (p search-singleton
+     =goal>
+       isa trial
+       task singleton
+       state start
+       target-orient =o
+     ?visual>
+       state free
+     ==>
+     +visual>
+       isa gs-search
+       orient =o
+     =goal>
+       state searching)
+
   ;; A hit puts the object in the visual buffer.  A quit leaves it empty with
   ;; state error, exactly like a retrieval failure, because a buffer cannot
   ;; hold a chunk and a failure flag at once.

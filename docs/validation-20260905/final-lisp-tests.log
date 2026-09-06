@@ -1,0 +1,262 @@
+This is SBCL 2.6.3, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+To load "bordeaux-threads":
+  Load 1 ASDF system:
+    bordeaux-threads
+; Loading "bordeaux-threads"
+
+To load "usocket":
+  Load 1 ASDF system:
+    usocket
+; Loading "usocket"
+
+To load "cl-json":
+  Load 1 ASDF system:
+    cl-json
+; Loading "cl-json"
+
+Trying to open server at "172.31.240.1":2650
+Server started on port 2650
+
+The ACT-R remote command dispatcher has been started
+
+##################################
+ACT-R 7 Version Information:
+Software              : 7.31.4-<3489:2026-06-10> 
+=================================================
+Components
+-------------------------------------------------
+AGI             : 6.0        Manager for the AGI windows
+CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+CURSOR-TABLE    : 4.0        Record the cursor devices that are used.
+HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+KEYBOARD-TABLE  : 3.1        Record the keyboards used for each model.
+NAMING          : 2.0        Provides new symbol generation for the system.
+STEPPER         : 7.0        Stepper interface global information
+TRACE-HISTORY   : 1.0        Component for recording trace information
+=================================================
+Modules
+-------------------------------------------------
+AUDICON-HISTORY       : 3.1        Module to record audicon changes.
+AUDIO                 : 9          A module which gives the model an auditory attentional system
+BOLD                  : 4.3        A module to produce BOLD response predictions from buffer request activity.
+BUFFER-HISTORY        : 2.1        Module to record buffer change history.
+BUFFER-PARAMS         : 1.0        Module to hold and control the buffer parameters
+BUFFER-TRACE          : 3.1        A module that provides a buffer based history mechanism.
+CENTRAL-PARAMETERS    : 2.0        a module that maintains parameters used by other modules
+DECLARATIVE           : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+DEVICE                : 7.3        The device interface for a model
+GOAL                  : 3.0        The goal module creates new goals for the goal buffer
+HISTORY-RECORDER      : 2.2        Module to support the saving and accessing of information as a model runs.
+IMAGINAL              : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+MOTOR                 : 8.0        Module to provide a model with virtual hands
+NAMING-MODULE         : 3.0        Provides safe and repeatable new name generation for models.
+PRINTING-MODULE       : 2.1        Coordinates output of the model.
+PROCEDURAL            : 8.3        The procedural module handles production definition and execution
+PRODUCTION-COMPILATION: 6.2        A module that assists the primary procedural module with compiling productions
+PRODUCTION-HISTORY    : 2.1        Module to record production history for display in the environment.
+RANDOM-MODULE         : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+RETRIEVAL-HISTORY     : 2.1        Module to record retrieval history data.
+SPEECH                : 7.2        A module to provide a model with the ability to speak
+STEPPER               : 7.0        Store the model specific information for the stepper interface.
+TEMPORAL              : 4.0        The temporal module is used to estimate short time intervals
+UTILITY               : 6.0        A module that computes production utilities
+VISICON-HISTORY       : 3.1        Module to record visicon changes.
+VISION                : 11.1       A module to provide a model with a visual attention system
+
+######### Loading of ACT-R 7 is complete #########
+
+; file: G:/VisualSearchModeling/gs-vision/gs-diffuser.lisp
+; in: DEFUN GS-CLEAR-SEARCH
+;     (GS-CLOSE-FIXATION VIS-MOD)
+; 
+; caught STYLE-WARNING:
+;   undefined function: COMMON-LISP-USER::GS-CLOSE-FIXATION
+; 
+; compilation unit finished
+;   Undefined function:
+;     GS-CLOSE-FIXATION
+;   caught 1 STYLE-WARNING condition
+
+; file: G:/VisualSearchModeling/gs-vision/gs-diffuser.lisp
+; in: DEFUN GS-SELECT
+;     (GS-BEST-GUIDANCE NEAR)
+; 
+; caught STYLE-WARNING:
+;   undefined function: COMMON-LISP-USER::GS-BEST-GUIDANCE
+; 
+; compilation unit finished
+;   Undefined function:
+;     GS-BEST-GUIDANCE
+;   caught 1 STYLE-WARNING condition
+
+; file: G:/VisualSearchModeling/gs-vision/gs-diffuser.lisp
+; in: DEFUN GS-CHECK-QUIT
+;     (GS-QUIT-WEIGHTS VIS-MOD LIVE)
+; 
+; caught STYLE-WARNING:
+;   undefined function: COMMON-LISP-USER::GS-QUIT-WEIGHTS
+; 
+; compilation unit finished
+;   Undefined function:
+;     GS-QUIT-WEIGHTS
+;   caught 1 STYLE-WARNING condition
+
+######### gs-vision loaded: :vision is now GS-1.0 #########
+
+== installation ==
+  ok   the vision module is the guided-search subclass
+  ok   its version is GS-1.0
+  ok   the visual-location buffer still exists
+  ok   the visual buffer still exists
+  ok   a stock parameter survived the redefinition
+  ok   an unowned stock parameter survived
+
+== parameter defaults (handoff section 6) ==
+  ok   GS-ENABLED defaults to T
+  ok   GS-SELECT-INTERVAL defaults to 0.05
+  ok   GS-DIFFUSER-CAPACITY defaults to 5
+  ok   GS-CHOICE-BETA defaults to 4.0
+  ok   GS-ID-DRIFT defaults to 0.25
+  ok   GS-ID-THRESHOLD defaults to 0.03
+  ok   GS-QUIT-DELTA defaults to 0.02
+  ok   GS-MEMORY defaults to 4
+  ok   GS-ATTN-FVF defaults to 8.0
+  ok   GS-EXPLORE-FVF defaults to 12.0
+  ok   GS-MAX-FIXATION defaults to 0.4
+  ok   GS-ICONIC-SPAN defaults to 4.0
+  ok   GS-ACUITY-SIGMA defaults to 0.5
+  ok   GS-W-BU defaults to 0.5
+  ok   GS-W-TD defaults to 1.0
+  ok   GS-W-H defaults to 0.3
+  ok   GS-W-V defaults to 0.0
+  ok   GS-W-S defaults to 1.0
+  ok   GS-W-E defaults to 0.02
+  ok   GS-NOISE defaults to 0.2
+  ok   GS-PRIMING-TAU defaults to 10.0
+  ok   GS-QT-INIT defaults to 1.0
+  ok   GS-QT-STEP defaults to 0.05
+  ok   GS-ERROR-GOAL defaults to 0.08
+  ok   GS-FEEDBACK-WINDOW defaults to 50
+  ok   GS-LOG-FIXATIONS defaults to T
+
+== channels (section 5.1) ==
+  ok   vertical is steep
+  ok   horizontal is shallow
+  ok   -45 is left
+  ok   45 is right
+  ok   a near-boundary orientation drives two channels
+  ok   the ramped activations sum to 1
+  ok   hue 0 is the red channel
+  ok   hue 120 is the green channel
+  ok   dark-green folds onto green
+  ok   an unknown colour becomes its own channel
+  ok   identical channels overlap fully
+  ok   disjoint channels do not overlap
+  ok   a degenerate size range gives the middle channel
+
+== acuity (section 5.2) ==
+  ok   the normal CDF is 0.5 at zero
+  ok   the normal CDF is about 0.9772 at 2
+  ok   shape is available near the fovea
+  ok   shape is unavailable in the periphery
+  ok   colour survives where shape does not
+
+== samplers ==
+  ok   the Wald sampler has the right mean
+  ok   the Wald sampler is non-negative
+  ok   the Wald distribution is right-skewed
+  ok   the unit normal has SD near 1
+
+== a hit (section 5.4) ==
+  ok   the search reports found
+  ok   the visual buffer holds a chunk
+  ok   the query search-result found is true
+  ok   the query search-result failed is false
+  ok   state error is false after a hit
+  ok   the module is free again
+  ok   the attended chunk is the red one
+  ok   no gs events are left scheduled
+  ok   gs-search-stats returns four values
+  ok   the quit reason of a hit is hit
+  ok   the elapsed time is positive
+
+== a quit (sections 5.6 and 3) ==
+  ok   the search reports failed
+  ok   the visual buffer is empty, not holding a failure chunk
+  ok   state error is true
+  ok   the query search-result failed is true
+  ok   the module is free
+  ok   something was rejected before quitting
+  ok   the quit reason is one of the two rules
+
+== inhibition of return (section 5.4) ==
+  ok   the IOR ring never exceeds :gs-memory
+  ok   more items were rejected than the ring can hold, so items recur
+
+== the two quit rules can be selected (section 5.7) ==
+  ok   stop cgs quits by the competitive rule
+  ok   stop adaptive quits by the threshold
+
+== eye movements (section 5.5) ==
+  ok   an unguided shape search makes saccades
+  ok   the fixation log has one entry per fixation
+  ok   every fixation has time, x, y and duration
+  ok   no fixation lands outside the display
+
+== guidance (section 10, phase 3) ==
+  ok   feature search finds the target on at least 90 percent of trials
+  ok   2-vs-5 gives no guidance, so the winner is near chance
+
+== feedback and the adaptive threshold (section 5.6) ==
+  ok   a true negative lowers the quitting threshold
+  ok   a miss raises it, and by much more than a true negative lowers it
+  ok   prevalence is 0.5 until ten feedbacks exist
+  ok   prevalence follows the feedback window
+  ok   the feedback window is capped
+
+== priming (section 5.3) ==
+  ok   an unseen value has no trace
+  ok   a bumped trace is 1
+  ok   the trace decays with the priming time constant
+
+== the guided location request (section 5.7) ==
+  ok   a guided location request returns the red item at least 90 percent of the time
+
+== the legacy path is untouched (section 4) ==
+  ok   a plain location request still filters exactly
+  ok   a plain location request does not start a search
+#|Warning: A GS-SEARCH request was made but :gs-enabled is nil. |#
+  ok   with :gs-enabled nil a gs-search is refused and starts nothing
+  ok   with :gs-enabled nil the search result stays none
+
+== validation repairs ==
+  ok   new initialization reaches adaptive state
+  ok   parameter application preserves learned state
+  ok   two occupied positions have exactly two closures
+  ok   initial central fixation coordinates
+  ok   second fixation coordinates
+  ok   first stationary duration is 100 ms
+  ok   final stationary duration is 200 ms
+  ok   benchmark recenters after an off-center end
+  ok   recentering preserves threshold and feedback
+  ok   first interval is an explicit 50 ms selection cost
+  ok   identified target has no second encoding delay
+  ok   buffer result time defines search duration
+  ok   central hit includes one final fixation
+  ok   VANISH before delivery leaves no stale visual chunk
+  ok   VANISH cancels/completes the owned delivery event
+  ok   vanished target records failure
+  ok   RESET before delivery leaves no stale visual chunk
+  ok   RESET cancels/completes the owned delivery event
+  ok   quit weights ignore noise winners at high beta
+  ok   threshold drains outstanding identifications before quitting
+
+
+========================================
+passed 115, failed 0

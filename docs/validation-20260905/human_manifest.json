@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "source_file": "RVvGV.txt",
+      "task": "feature",
+      "bytes": 1055246,
+      "sha256": "cd3c9266103a84c8bdb449ff342c93e180b67d14f35638259645cda9b928323f",
+      "rows": 35948,
+      "participants": 9,
+      "malformed_rows": 0,
+      "duplicate_full_records": 227,
+      "repeated_trial_numbers": 31948,
+      "trial_number_resets": 80,
+      "conditions": [
+        "RVvGV"
+      ],
+      "exclusions": {
+        "included": 35921,
+        "below_200": 16,
+        "above_upper": 11
+      },
+      "accuracy_denominator": 35948,
+      "accuracy_denominator_if_rt_trimmed": 35921,
+      "errors_excluded_by_rt": 6
+    },
+    {
+      "source_file": "RVvRHGV.txt",
+      "task": "conjunction",
+      "bytes": 1154478,
+      "sha256": "6e06a1ae64ff474fea053dc08f787df721ed6b3b8a9bccb019e6c990e7b537b5",
+      "rows": 39962,
+      "participants": 10,
+      "malformed_rows": 0,
+      "duplicate_full_records": 135,
+      "repeated_trial_numbers": 34662,
+      "trial_number_resets": 103,
+      "conditions": [
+        "RVvRHGV"
+      ],
+      "exclusions": {
+        "included": 39922,
+        "above_upper": 35,
+        "below_200": 5
+      },
+      "accuracy_denominator": 39962,
+      "accuracy_denominator_if_rt_trimmed": 39922,
+      "errors_excluded_by_rt": 3
+    },
+    {
+      "source_file": "2_vs_5.txt",
+      "task": "spatial",
+      "bytes": 1010270,
+      "sha256": "50190cfa880fc810f386f6306e9ef82b120788ce5ea6b572d276c287350391ef",
+      "rows": 35867,
+      "participants": 9,
+      "malformed_rows": 0,
+      "duplicate_full_records": 36,
+      "repeated_trial_numbers": 32371,
+      "trial_number_resets": 162,
+      "conditions": [
+        "2_vs_5"
+      ],
+      "exclusions": {
+        "included": 35854,
+        "below_200": 8,
+        "above_upper": 5
+      },
+      "accuracy_denominator": 35867,
+      "accuracy_denominator_if_rt_trimmed": 35854,
+      "errors_excluded_by_rt": 5
+    }
+  ],
+  "total_rows": 111777,
+  "split_id": "3909d6744a259e3a836b682ca7f2f15766cb8c1c58581145042a72c5fdb7f841",
+  "protocol_id": "6c1db6a6e5b5d1bb4880ac8a67a28a653a2804a5826ca2e1b233218c86bb9f13",
+  "normalized_sha256": "84048fc7f845ef85e5ccd046fe58dc519623fdd8a587da3cee6202c2fb657add"
+}

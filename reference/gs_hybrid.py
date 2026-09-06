@@ -1,70 +1,28 @@
-"""Python mirror of the gs-vision module specified in the handoff, sections 5.2 to 5.6.
+"""Python mirror of the repaired gs-vision module.
 
-Why this file exists
---------------------
-Neither Competitive Guided Search (``cgs.py``) nor the GS6 diffuser simulation
-(``gs6_sim.py``) is the architecture being built, so neither predicts what the
-handoff's defaults will do.  This is a trial-level simulation of *this*
-module: same parameter names, same channel rules, same EPIC acuity, same
-centred Luce weights, same IOR ring, same two quit rules, same EMMA saccade
-arithmetic, run on the displays from ``harness/tasks.py``.  It is the fitting
-target of section 8.4 and the cross-check for the Lisp port at the end of
-phase 4.
+Shape remains identification-only. Covert choice uses noisy priorities;
+saccade triggering uses noise-free guidance and a margin, with a separate
+destination distance penalty. Preparation permits useful covert work, while
+execution pauses new selection. Fixations record occupied stationary intervals
+from request to visual result, including initial/final closures.
 
-Three places where the handoff underdetermines the model
---------------------------------------------------------
-Recorded here rather than resolved silently; the Lisp module makes the same
-three choices, and the module README repeats them.
+Wald completes recognition once required features are available. Missing
+features still require foveation. Peripheral recognition does not move gaze or
+add another encoding stage. The initial selection interval remains a cost.
 
-1. **Adaptive quitting threshold, units.**  Section 5.6 says the threshold is
-   "in units of rejections", that its initial value is ``qt_init * N_eff``,
-   and that the step is ``qt_step * N_eff``.  Taken literally the state would
-   drift whenever ``N_eff`` changes between trials.  We keep a persistent
-   unitless ``qt_scale`` (initially ``qt_init``) and test
-   ``rejections >= qt_scale * N_eff``, moving ``qt_scale`` by ``qt_step``.
-   That is algebraically the handoff's rule at fixed ``N_eff`` and is also
-   what the GS6 MATLAB does: a persistent threshold scaled by set size at test
-   time.
-2. **Which items enter the CGS quit denominator.**  Section 5.6 says "the
-   centred weights of section 5.4 step 1", and step 1 restricts eligibility to
-   items inside the attentional functional visual field and outside the
-   diffuser.  Either filter can empty the denominator while the search is
-   still going, which makes ``p_quit`` exactly 1 and quits the trial instead
-   of saccading or waiting.  Competitive Guided Search zeroes an item's weight
-   when the item is *rejected*, so we read the phrase as naming the weight
-   formula and take the denominator over every item not in the IOR ring,
-   display-wide, items being identified included.  With the literal reading
-   the spatial-configuration miss rate at set size 3 is over 40 percent.
-3. **What "entry in iconic memory" means.**  A feature is in iconic memory for
-   ``iconic_span`` seconds after it was last available.  The *location* entry
-   persists for as long as the item is in the visicon, so that an item all of
-   whose features have decayed still contributes the 0.5 "unknown" term to the
-   top-down map rather than vanishing.
-4. **Peripheral guidance needs a fourth saccade trigger.**  Section 5.4 step 1
-   restricts covert selection to items inside the attentional functional
-   visual field, and section 5.6's own worked example requires feature search
-   to find the target *before* rejecting anything (its effective set size is 1,
-   so one rejection ends the trial).  Those two are inconsistent whenever the
-   target sits outside the 8 deg field, which is 60 percent of the 22.5 deg
-   benchmark display: the model is forced to grab a nearby distractor, reject
-   it, and quit.  So selection consults the priority map *globally*: if the
-   highest-priority eligible item is outside the attentional field, no covert
-   selection happens on that cycle and a saccade to that item is requested
-   instead.  The attentional field keeps its meaning (covert identification is
-   limited to 8 deg); what changes is that the winner of the priority
-   competition is always what happens next, which is what Guided Search means
-   by guidance.  Without this the feature-search miss rate is about 30 percent
-   at set size 18 and its RT falls with set size.
-5. **A dead end is only a dead end when the diffuser is empty.**  Section 5.5
-   ends "if still none, quit".  Items already being identified are not
-   nothing, so the quit fires only when there is also nothing in flight.
+Competitive quit weights include unresolved diffuser items, omit noise and
+eccentricity, and cap their beta at four. Adaptive stopping drains outstanding
+identifications. Threshold scale, priming, and feedback persist within each
+observer; benchmark gaze/preparation reset at the untimed fixation cross.
 
-Two things that are deliberately not in the Lisp module
--------------------------------------------------------
-``motor_error`` and ``t_nondecision`` model the response stage, which in ACT-R
-belongs to the productions and the motor module, not to vision.  They are here
-because this file has to produce comparable RTs and non-zero false-alarm rates
-on its own.  Slopes do not depend on either.
+GSParams separates vision from the measured keyboard response approximation
+(160/260/310 ms on repeat/switch/first responses) and trial protocol. These
+response settings are fixed from ACT-R events, never fitted to human RT.
+Milliseconds are normalized at construction. run_cells uses the same task
+blocks, synthetic practice, feedback timing, and display plan as the runner.
+
+The independent gs6_sim.py remains the original posted-MATLAB replication.
+Scientific misfits and historical ablations are documented in docs/RESULTS.md.
 """
 
 from __future__ import annotations
@@ -82,7 +40,7 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from harness.tasks import (SCREEN_CENTER_PX, SET_SIZES, TASKS, TEMPLATES,  # noqa: E402
-                           Display, make_display, px2deg)
+                           Display, make_display, px2deg, deg2px)
 
 GUIDING_DEFAULT = ("color", "orient", "size", "lum")
 
@@ -97,8 +55,19 @@ class GSParams:
     select_interval: float = 0.050
     diffuser_capacity: int = 5
     choice_beta: float = 4.0
+    saccade_margin: float = 0.25    # noise-free guidance advantage
+    saccade_proximity: float = 0.10 # guidance penalty per degree, eye choice only
+    revised_saccades: bool = True
+    quit_noise_free: bool = True
+    recognition_extra: bool = False # historical recognition-delay ablation
     id_drift: float = 0.25          # Wald mu
-    id_threshold: float = 0.03      # Wald theta; sigma fixed at 0.1
+    id_threshold: float = 0.03      # Wald theta
+    id_sigma: float = 0.1           # Wald noise; CV^2 = sigma^2 / (theta mu)
+    id_error: float = 0.0           # P(an identification decision flips): misses and false alarms
+    onset_latency: float = 0.0      # s from the request to the first covert selection
+    adaptive_quit_delta: bool = False  # scale the competitive increment by the adaptive threshold
+    explore_proximity: bool = False    # distance-penalised destination when the attentional field is empty
+    saccade_trigger: float = 0.0       # deg; > 0 moves the eye once the nearest selectable item is farther
     quit_delta: float = 0.02
     memory: int = 4                 # IOR ring size
     attn_fvf: float = 8.0           # deg
@@ -131,9 +100,19 @@ class GSParams:
     vis_obj_freq: float = 0.1
     visual_attention_latency: float = 0.085
     # response stage: harness-only, see the module docstring
-    motor_error: float = 0.012
-    t_nondecision: float = 0.45
-    max_trial_s: float = 15.0
+    motor_error: float = 0.0
+    t_nondecision: float = 0.160   # measured repeated j/f key response stage
+    response_first_extra: float = 0.150
+    response_switch_extra: float = 0.100
+    trial_gap: float = 2.0        # feedback 500 + ITI 1000 + warning interval 500 ms
+    max_trial_s: float = 20.0
+
+    def __post_init__(self):
+        # These ACT-R parameter slots store integer milliseconds. Normalize
+        # before simulation, serialization, and readback comparison.
+        for name in ("select_interval", "max_fixation", "iconic_span", "visual_attention_latency",
+                     "onset_latency"):
+            object.__setattr__(self, name, round(getattr(self, name) * 1000) / 1000)
 
     @property
     def theta_map(self) -> dict:
@@ -145,7 +124,12 @@ class GSParams:
 
     @property
     def id_shape(self) -> float:
-        return self.id_threshold ** 2 / 0.1 ** 2
+        return self.id_threshold ** 2 / self.id_sigma ** 2
+
+    @property
+    def id_cv(self) -> float:
+        """Coefficient of variation of the identification time."""
+        return self.id_sigma / math.sqrt(self.id_threshold * self.id_drift)
 
 
 DEFAULTS = GSParams()
@@ -267,6 +251,7 @@ class GSHybrid:
         self.feedback: deque = deque(maxlen=params.feedback_window)
         self.clock = 0.0                   # a running clock for priming decay
         self.last_saccade = None           # (amplitude_deg, direction_rad)
+        self.last_response = None
 
     # -- priming ----------------------------------------------------------
     def _trace(self, key) -> float:
@@ -315,7 +300,7 @@ class GSHybrid:
                 "shape": {str(it.shape): 1.0},
             }
             out.append(_Item(idx=i, x=float(it.x_px), y=float(it.y_px),
-                             size_deg=0.5 * (it.w_deg + it.h_deg),
+                             size_deg=0.5 * (px2deg(deg2px(it.w_deg)) + px2deg(deg2px(it.h_deg))),
                              raw=raw, channels=ch, is_target=it.is_target))
         return out
 
@@ -352,6 +337,7 @@ class GSHybrid:
                     continue
                 th = theta.get(f)
                 if th is None:
+                    iconic[it.idx][f] = t
                     continue
                 # P(s > N(theta*e, sigma)) = Phi((s - theta*e)/sigma)
                 z = (it.size_deg - th * e) / sig
@@ -426,11 +412,13 @@ class GSHybrid:
         bu, td_n, hist = _norm(bu), _norm(td), _norm(hist)
 
         out = {}
+        self.guidance = {}
         for it in items:
             eps = p.noise * math.log(max(1e-12, u := self.rng.random()) / max(1e-12, 1.0 - u))
-            out[it.idx] = (p.w_bu * bu[it.idx] + p.w_td * td_n[it.idx]
+            self.guidance[it.idx] = (p.w_bu * bu[it.idx] + p.w_td * td_n[it.idx]
                            + p.w_h * hist[it.idx] + p.w_v * 0.0
-                           + p.w_s * it.prior - p.w_e * self._ecc(it, eye) + eps)
+                           + p.w_s * it.prior)
+            out[it.idx] = self.guidance[it.idx] - p.w_e * self._ecc(it, eye) + eps
         return out, td
 
     # -- EMMA arithmetic (section 5.5) ------------------------------------
@@ -441,15 +429,17 @@ class GSHybrid:
         else:
             r0, th0 = self.last_saccade
             nfeat = 0
-            if abs(amplitude_deg - r0) > 2.0:           # distances match within 2 deg
+            if abs(amplitude_deg - r0) >= 2.0:          # ACT-R strict boundary
                 nfeat += 1
             dth = abs((direction - th0 + math.pi) % (2 * math.pi) - math.pi)
-            if dth > math.pi / 2:                       # directions within 90 deg
+            if dth >= math.pi / 4:                      # ACT-R directions within 45 deg
                 nfeat += 1
         prep = p.saccade_feat_time * nfeat
         exe = p.saccade_init_time + p.saccade_base_time + p.eye_saccade_rate * amplitude_deg
         self.last_saccade = (amplitude_deg, direction)
-        return prep + exe
+        self.saccade_prep = round(prep * 1000) / 1000
+        self.saccade_execution = round(exe * 1000) / 1000
+        return self.saccade_prep + self.saccade_execution
 
     def _raw_encoding(self, ecc_deg: float) -> float:
         p = self.p
@@ -485,6 +475,8 @@ class GSHybrid:
                   stop: str = "both") -> dict:
         p = self.p
         rng = self.rng
+        trial_onset = self.clock
+        self.clock += .050                 # search production before request
         template = template if template is not None else TEMPLATES[display.task]
         items = self._prepare(display)
         tmpl_ch = self._template_channels(template, items)
@@ -498,8 +490,10 @@ class GSHybrid:
         t = 0.0
         fixations = [];  fix_start = 0.0
         saccade_flight = False
+        eye_moving = False
         last_landed_on = None
         self.last_saccade = None
+        events = [(0.0, "request", None)]
 
         self._draw_availability(items, eye, iconic, t)
         prio, td = self._priority(items, iconic, eye, tmpl_ch, t)
@@ -524,11 +518,13 @@ class GSHybrid:
                 out.append(it.idx)
             return out
 
-        def centred_weights(idxs):
+        def centred_weights(idxs, quitting=False):
             if not idxs:
                 return []
-            pbar = sum(prio[i] for i in idxs) / len(idxs)
-            return [math.exp(min(50.0, p.choice_beta * (prio[i] - pbar))) for i in idxs]
+            signal = self.guidance if quitting and p.quit_noise_free else prio
+            beta = min(4.0, p.choice_beta) if quitting and p.quit_noise_free else p.choice_beta
+            pbar = sum(signal[i] for i in idxs) / len(idxs)
+            return [math.exp(min(50.0, beta * (signal[i] - pbar))) for i in idxs]
 
         outcome = {"result": None, "reason": None, "item": None}
 
@@ -550,57 +546,83 @@ class GSHybrid:
                     if not diffuser:
                         outcome["result"], outcome["reason"] = "quit", "no-candidate"
                     return
-                tgt = max(cand, key=lambda i: prio[i])
+                tgt = max(cand, key=lambda i: self.guidance[i] - p.saccade_proximity *
+                          self._ecc(items[i], eye)) if p.revised_saccades else max(cand, key=lambda i: prio[i])
             it = items[tgt]
             dx, dy = it.x - eye[0], it.y - eye[1]
             amp = px2deg(math.hypot(dx, dy))
-            push(t + self._saccade_time(amp, math.atan2(-dy, dx)), "land", tgt)
+            self._saccade_time(amp, math.atan2(-dy, dx))
+            push(t + self.saccade_prep, "execute", (tgt, self.saccade_execution))
             saccade_flight = True
 
         def do_reject(i):
             nonlocal quit_weight, rejections
             diffuser.pop(i, None)
             ior.append(i)
-            quit_weight += p.quit_delta
+            # With adaptive_quit_delta the competitive increment is divided by
+            # the persistent adaptive scale, so feedback that raises the
+            # threshold after a miss also makes competitive quitting rarer.
+            # Without it the two quit rules are independent and the controller
+            # cannot reach its error goal once competitive quits dominate.
+            quit_weight += (p.quit_delta / max(0.05, self.qt_scale)
+                            if p.adaptive_quit_delta else p.quit_delta)
             rejections += 1
             if stop in ("cgs", "both"):
                 # Competitive Guided Search zeroes an item's weight when it is
                 # *rejected*, not while it is being identified, so items in the
                 # diffuser stay in the denominator.  See deviation 2.
-                w = centred_weights([it.idx for it in items if it.idx not in ior])
+                w = centred_weights([it.idx for it in items if it.idx not in ior], quitting=True)
                 denom = sum(w) + quit_weight
                 if denom > 0 and rng.random() < quit_weight / denom:
                     outcome["result"], outcome["reason"] = "quit", "cgs"
                     return
-            if stop in ("adaptive", "both") and rejections >= qt:
+            if stop in ("adaptive", "both") and not diffuser and rejections >= qt:
                 outcome["result"], outcome["reason"] = "quit", "threshold"
 
-        push(p.select_interval, "select")
+        push(p.onset_latency + p.select_interval, "select")
         push(p.max_fixation, "fixtimeout")
 
         while outcome["result"] is None and queue:
             t, _, kind, payload = heapq.heappop(queue)
             if t > p.max_trial_s:
+                t = p.max_trial_s
                 outcome["result"], outcome["reason"] = "quit", "timeout"
                 break
 
             if kind == "select":
-                if len(diffuser) < p.diffuser_capacity:
+                draining = stop in ("adaptive", "both") and rejections >= qt and diffuser
+                if not eye_moving and not draining and len(diffuser) < p.diffuser_capacity:
                     everywhere = eligible(None)
-                    winner = max(everywhere, key=lambda i: prio[i]) if everywhere else None
+                    signal = self.guidance if p.revised_saccades else prio
+                    winner = max(everywhere, key=lambda i: signal[i]) if everywhere else None
                     near = eligible(p.attn_fvf)
-                    if winner is not None and winner not in near:
+                    if (p.saccade_trigger > 0 and near and not saccade_flight and
+                            min(self._ecc(items[i], eye) for i in near) > p.saccade_trigger):
+                        # Everything close has been dealt with: start moving the
+                        # eye (distance-penalised destination) while covert
+                        # selection continues during the preparation.
+                        request_saccade()
+                    if winner is not None and winner not in near and (
+                            not p.revised_saccades or not near or
+                            signal[winner] > max(signal[i] for i in near) + p.saccade_margin):
                         # Peripheral guidance (deviation 4 in the docstring):
                         # the priority winner cannot be selected covertly, so
                         # look at it instead of covertly grabbing a loser.
-                        request_saccade(to=winner)
-                    elif near:
+                        # With explore_proximity and nothing selectable inside
+                        # the attentional field, the destination is chosen by
+                        # guidance minus distance (request_saccade's own rule)
+                        # rather than by guidance with icon-order tie-breaking.
+                        request_saccade(to=None if (p.explore_proximity and not near) else winner)
+                        if p.revised_saccades:
+                            near = []
+                    if near and (p.revised_saccades or winner in near):
                         w = np.array(centred_weights(near), float)
                         pick = near[int(rng.choice(len(near), p=w / w.sum()))]
                         diffuser[pick] = {"pending": False, "foveated": False}
-                        dt = float(rng.wald(p.id_mean, p.id_shape))
+                        dt = round(float(rng.wald(p.id_mean, p.id_shape)) * 1000) / 1000
+                        events.append((t, "select", pick))
                         push(t + dt, "decide", pick)
-                    else:
+                    elif not near:
                         request_saccade()
                 push(t + p.select_interval, "select")
 
@@ -608,6 +630,7 @@ class GSHybrid:
                 i = payload
                 if i not in diffuser:
                     continue
+                events.append((t, "decision", i))
                 avail = self._available(iconic, i, t)
                 missing = [k for k in template if k not in avail]
                 if missing:
@@ -619,29 +642,42 @@ class GSHybrid:
                 else:
                     ok = all(channel_overlap(items[i].channels[k], tmpl_ch[k]) > 0.5
                              for k in template)
+                    if p.id_error > 0 and rng.random() < p.id_error:
+                        ok = not ok            # second decision boundary: miss or false alarm
                     if ok:
                         outcome["result"], outcome["item"] = "found", i
                         outcome["reason"] = "hit"
-                        dx, dy = items[i].x - eye[0], items[i].y - eye[1]
-                        enc, moved = self._encoding_time(
-                            self._ecc(items[i], eye), math.atan2(-dy, dx))
-                        if moved:
-                            eye = [items[i].x, items[i].y]
-                            fixations.append((fix_start, eye[0], eye[1], t - fix_start))
-                            fix_start = t
-                        t = t + enc
+                        events.append((t, "identified", i))
+                        if p.recognition_extra:
+                            # Historical Lisp delay; no unmodeled gaze relocation.
+                            ecc = self._ecc(items[i], eye)
+                            enc = self._raw_encoding(ecc)
+                            sacc = p.saccade_init_time + p.saccade_base_time + p.eye_saccade_rate * ecc
+                            t += round((enc if enc <= sacc else sacc +
+                                       max(0, 1 - sacc / enc) * self._raw_encoding(.5)) * 1000) / 1000
                     else:
                         do_reject(i)
 
+            elif kind == "execute":
+                if fix_start is not None:
+                    fixations.append((fix_start, eye[0], eye[1], t - fix_start))
+                    fix_start = None
+                eye_moving = True
+                events.append((t, "saccade-execute", payload[0]))
+                push(t + payload[1], "land", payload[0])
+
             elif kind == "land":
                 saccade_flight = False
+                eye_moving = False
                 tgt = items[payload]
                 dist_px = math.hypot(tgt.x - eye[0], tgt.y - eye[1])
                 sd = 0.1 * dist_px
-                eye = [tgt.x + rng.normal(0.0, sd), tgt.y + rng.normal(0.0, sd)]
-                fixations.append((fix_start, eye[0], eye[1], t - fix_start))
+                scale = math.sqrt(3) * sd / math.pi
+                eye = [tgt.x + rng.logistic(0.0, scale), tgt.y + rng.logistic(0.0, scale)]
                 fix_start = t
+                events.append((t, "landing", payload))
                 last_landed_on = payload
+                self.clock = trial_onset + .050 + t
                 self._draw_availability(items, eye, iconic, t)
                 prio, _ = self._priority(items, iconic, eye, tmpl_ch, t)
                 push(t + p.max_fixation, "fixtimeout")
@@ -653,39 +689,48 @@ class GSHybrid:
                         push(t + 0.050, "decide", i)
 
             elif kind == "fixtimeout":
-                if t - fix_start >= p.max_fixation - 1e-9:
+                if fix_start is not None and t - fix_start >= p.max_fixation - 1e-9:
                     request_saccade()
+                    push(t + p.max_fixation, "fixtimeout")
 
         if outcome["result"] is None:
             outcome["result"], outcome["reason"] = "quit", "exhausted"
+        if fix_start is not None:
+            fixations.append((fix_start, eye[0], eye[1], max(0, t - fix_start)))
+        events.append((t, "buffer" if outcome["result"] == "found" else "failure", outcome["item"]))
 
         # -- response stage ---------------------------------------------------
         found = outcome["result"] == "found"
         say_present = found
         if rng.random() < p.motor_error:
             say_present = not say_present
-        rt = t + p.t_nondecision
+        response_extra = (p.response_first_extra if self.last_response is None else
+                          p.response_switch_extra if say_present != self.last_response else 0)
+        rt = t + p.t_nondecision + response_extra
+        timed_out = outcome["reason"] == "timeout"
         correct = say_present == display.target_present
         if display.target_present:
             label = _HIT if say_present else _MISS
         else:
             label = _FA if say_present else _TN
 
+        self.clock = trial_onset + rt + .050  # feedback production
         if label == _HIT and outcome["item"] is not None:
-            self.clock += rt
             for k in p.guiding_features:
                 for cname in items[outcome["item"]].channels.get(k, {}):
                     self._bump((k, cname))
-        else:
-            self.clock += rt
-
-        self.feedback_outcome(label, n_eff)
+        if not timed_out:
+            self.feedback_outcome(label, n_eff)
+            self.last_response = say_present
+        self.clock = trial_onset + (p.max_trial_s if timed_out else rt) + p.trial_gap
 
         return {
             "task": display.task, "set_size": display.set_size,
             "target_present": display.target_present,
-            "response": say_present, "correct": correct, "label": label,
-            "rt": rt, "search_time": t,
+            "response": say_present if not timed_out else None,
+            "correct": correct and not timed_out, "label": label if not timed_out else "timeout",
+            "rt": rt if not timed_out else float("nan"), "search_time": t,
+            "timed_out": timed_out, "events": events, "qt_scale": self.qt_scale,
             "n_fixations": len(fixations), "n_rejected": rejections,
             "quit_reason": outcome["reason"], "n_eff": n_eff,
             "qt": qt, "fixations": fixations,
@@ -696,10 +741,24 @@ class GSHybrid:
 # Batch helpers
 # --------------------------------------------------------------------------
 
+# Parameter type -> observer class.  reference/gs6_hybrid.py registers its own
+# pair on import, so every batch helper below runs the model that matches the
+# parameters it is given without this file importing the variant.
+MODEL_CLASSES: dict = {GSParams: GSHybrid}
+
+
+def model_for(params, seed: int):
+    """The observer class registered for ``type(params)``."""
+    try:
+        return MODEL_CLASSES[type(params)](params, seed=seed)
+    except KeyError:
+        raise TypeError(f"No observer registered for {type(params).__name__}") from None
+
+
 def run_cells(params: GSParams = DEFAULTS, tasks: Sequence[str] = TASKS,
               set_sizes: Sequence[int] = SET_SIZES, n_per_cell: int = 300,
               seed: int = 0, keep_fixations: bool = False,
-              burn_in: float = 0.25) -> list:
+              burn_in: float = 0.0, practice: int = 30) -> list:
     """Run every task x set size x presence cell and return trial records.
 
     One simulated observer per task, trials interleaved in random order so the
@@ -708,19 +767,20 @@ def run_cells(params: GSParams = DEFAULTS, tasks: Sequence[str] = TASKS,
     the threshold starts at ``qt_init`` and has to converge.
     """
     rows = []
+    from harness.protocol import observer_plan
     for task in tasks:
-        model = GSHybrid(params, seed=seed)                 # one observer per task
-        rng = np.random.default_rng(seed + 1000)
-        order = [(n, pr) for n in set_sizes for pr in (True, False)] * n_per_cell
-        rng.shuffle(order)
+        model = model_for(params, seed)                     # one observer per task
+        order, rng = observer_plan(task, set_sizes, n_per_cell, seed, practice)
         cut = int(len(order) * burn_in)
-        for k, (n, present) in enumerate(order):
+        for k, (n, present, is_practice, block) in enumerate(order):
             d = make_display(task, n, present, rng)
             r = model.run_trial(d)
-            if k < cut:
+            if k < cut or is_practice:
                 continue
             if not keep_fixations:
                 r.pop("fixations", None)
+                r.pop("events", None)
+            r.update(subject_seed=seed, trial=k, practice=False, block=block)
             rows.append(r)
     return rows
 
@@ -735,7 +795,7 @@ def run_prevalence(params: GSParams = DEFAULTS, task: str = "conjunction",
     prevalence, and it needs a long burn-in to settle, so the default here
     discards the first 30 percent of trials.
     """
-    model = GSHybrid(params, seed=seed)
+    model = model_for(params, seed)
     rng = np.random.default_rng(seed + 500)
     rows = []
     cut = int(n_trials * burn_in)
@@ -757,7 +817,7 @@ def run_priming(params: GSParams = DEFAULTS, n_trials: int = 2000, seed: int = 0
     A trial is a *repeat* when its target colour matches the previous trial's.
     The priming traces of section 5.3 should make repeats faster.
     """
-    model = GSHybrid(params, seed=seed)
+    model = model_for(params, seed)
     rng = np.random.default_rng(seed + 700)
     rows = []
     cut = int(n_trials * burn_in)
@@ -899,9 +959,9 @@ def run_singleton(params: GSParams = DEFAULTS, n_trials: int = 3000, seed: int =
     distractor-present and distractor-absent trials.
     """
     from harness.tasks import SINGLETON_TEMPLATE, make_singleton_display
-    model = GSHybrid(params, seed=seed)
+    model = model_for(params, seed)
     rng = np.random.default_rng(seed + 900)
-    palette = ("red", "green")
+    palette = ("red", "blue")   # both differ from the green background items
     rows = []
     cut = int(n_trials * burn_in)
     for k in range(n_trials):

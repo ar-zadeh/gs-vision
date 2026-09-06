@@ -1,5 +1,61 @@
 # Changelog
 
+## Post-freeze refit (September 5, 2026, later the same day)
+
+Five parameters were added, all defaulting to the frozen behaviour, so every
+September 5 configuration still loads and reproduces its runs exactly:
+
+* `:gs-id-sigma` exposes the Wald identification noise that had been a fixed
+  constant of 0.1. With the fitted threshold that constant forced a
+  coefficient of variation of 1.3 on every identification.
+* `:gs-id-error` is a second decision boundary in the simplest form: with that
+  probability a decision flips, producing misses and false alarms from one
+  source. False alarms were structurally impossible before.
+* `:gs-onset-latency` delays the first covert selection after a request. The
+  stock module charges 85 ms of encoding per attention shift, which the search
+  request had bypassed.
+* `:gs-adaptive-quit-delta` divides the competitive quit increment by the
+  adaptive threshold scale. In the frozen spatial run every miss came from the
+  competitive rule while the adaptive scale had drifted to fifty times its
+  starting value, so the feedback controller was inert.
+* `:gs-explore-proximity` makes the destination choice, when nothing inside
+  the attentional field is selectable, use guidance minus distance instead of
+  the guidance winner with icon-order tie-breaking. In the frozen run 94% of
+  later conjunction saccades exceeded the 11 degree field for that reason.
+* `:gs-saccade-trigger` requests a saccade as soon as the nearest selectable
+  item is farther than the given number of degrees, while covert selection
+  continues during the preparation. Without it the covert loop exhausts the
+  whole attentional field before the eye moves, so every saccade has to
+  exceed that field whatever the destination rule.
+
+`harness/fit.py` gains `DE_BOUNDS_REFIT` (13 dimensions, including the shape
+acuity slope) and parallel evaluation; `harness/refit.py` drives the refit.
+Outcome, all exploratory: on the test participants the trigger candidate
+lowers quantile RMSE from 127.7 to 100.1 ms and passes 4 of 6 slopes with an
+unchanged miss-rate error; on the validation participants both candidates are
+worse than the frozen fit; saccade amplitude is unchanged. See
+[the refit results](../docs/RESULTS-REFIT-20260905.md).
+
+## Validation repair (September 5, 2026)
+
+The repair adds validated human import, participant splits, complete parameter
+transport/readback, actual keypress RTs, matched task/practice state, corrected
+fixations, cancellable delivery, and explicit report regeneration.
+
+Recognition is charged once. Movement preparation and execution are separate.
+The Wald sampler uses a true normal draw; the mirror follows ACT-R's
+45-degree preparation equivalence and logistic landing noise. New saccade
+and quit policies are documented in the README and measured with ablations.
+Adaptive stopping drains outstanding evidence. Original GS6 code is unchanged.
+
+The new raw-data report supersedes all old intercept ranges and provisional
+human targets. Test quantile RMSE remains 127.7 ms; only two of six slopes
+pass. Final implementation agreement uses 2,000 trials per cell across two
+seeds. See [results](../docs/RESULTS.md) for failures and reproducible artifacts.
+
+The records below describe the historical September 4 implementation. Their
+mechanism descriptions and numerical claims are not current behavior.
+
 ## GS-1.0 (2026-09-04)
 
 First working version. Built against ACT-R **7.31.4** (`framework/version-string.lisp`

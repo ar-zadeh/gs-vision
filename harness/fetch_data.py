@@ -47,12 +47,19 @@ def _json(url: str) -> dict:
 
 def _listing(node: str, href: str | None = None) -> list:
     url = href or f"https://api.osf.io/v2/nodes/{node}/files/osfstorage/"
-    return _json(url).get("data", [])
+    entries = []
+    while url:
+        page = _json(url)
+        entries.extend(page.get("data", []))
+        url = page.get("links", {}).get("next")
+    return entries
 
 
 def _download(entry: dict, dest_dir: pathlib.Path) -> pathlib.Path:
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / entry["attributes"]["name"]
+    if dest.exists():
+        return dest                 # preserve already downloaded source bytes
     with urllib.request.urlopen(entry["links"]["download"], timeout=180) as r:
         dest.write_bytes(r.read())
     return dest
@@ -93,11 +100,16 @@ def fetch_wu_wolfe() -> list:
     """Every file in the UFOV project's components (Tier 2 eye tracking)."""
     got = []
     kids = _json(f"https://api.osf.io/v2/nodes/{WU_WOLFE_NODE}/children/").get("data", [])
+    def walk(node, destination, href=None):
+        for entry in _listing(node, href):
+            if entry["attributes"]["kind"] == "folder":
+                walk(node, destination / entry["attributes"]["name"],
+                     entry["relationships"]["files"]["links"]["related"]["href"])
+            else:
+                got.append(_download(entry, destination))
     for kid in kids:
         title = kid["attributes"]["title"].strip().replace(" ", "_")
-        for entry in _listing(kid["id"]):
-            if entry["attributes"]["kind"] == "file":
-                got.append(_download(entry, HUMAN / "wu_wolfe2022" / title))
+        walk(kid["id"], HUMAN / "wu_wolfe2022" / title)
     return got
 
 

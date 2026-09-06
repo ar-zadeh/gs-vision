@@ -1,0 +1,97 @@
+{
+  "model": "paav_fit",
+  "title": "PAAV, fitted (mirror)",
+  "n_fitted": 9,
+  "per_task": false,
+  "bounds": [
+    [
+      "s",
+      0.0,
+      1.0
+    ],
+    [
+      "bu_w",
+      0.0,
+      3.0
+    ],
+    [
+      "td_w",
+      0.0,
+      3.0
+    ],
+    [
+      "encoding",
+      0.02,
+      0.3
+    ],
+    [
+      "productions",
+      2.0,
+      3.0
+    ],
+    [
+      "acuity_scale",
+      0.3,
+      3.0
+    ],
+    [
+      "t0_yes",
+      0.1,
+      0.6
+    ],
+    [
+      "t0_no",
+      0.1,
+      0.6
+    ],
+    [
+      "c",
+      2.0,
+      60.0
+    ]
+  ],
+  "defaults": {
+    "productions": 3.0,
+    "encoding": 0.05,
+    "bu_w": 1.1,
+    "td_w": 0.45,
+    "s": 0.2,
+    "acuity_scale": 1.0,
+    "persistence": 4.0,
+    "gaze_noise": 0.5,
+    "sacc_base": 0.02,
+    "sacc_rate": 0.002,
+    "t0_yes": 0.3,
+    "t0_no": 0.3,
+    "measured_extras": 0.0,
+    "c": 12.0,
+    "m": 0.0
+  },
+  "fit_split": "train",
+  "seed": 1001,
+  "n_per_cell": 200,
+  "maxiter": 60,
+  "popsize": 8,
+  "values": {
+    "productions": 2.4078010626516333,
+    "encoding": 0.021026027982649603,
+    "bu_w": 0.03193905378441553,
+    "td_w": 2.2932057131638794,
+    "s": 0.5837470675156388,
+    "acuity_scale": 0.551612915817937,
+    "persistence": 4.0,
+    "gaze_noise": 0.5,
+    "sacc_base": 0.02,
+    "sacc_rate": 0.002,
+    "t0_yes": 0.23238912168380774,
+    "t0_no": 0.11366487205830422,
+    "measured_extras": 0.0,
+    "c": 14.790925922487379,
+    "m": 0.0
+  },
+  "cost": 358.3535704531152,
+  "evaluations": 4392,
+  "fitted": true,
+  "optimizer_message": "Maximum number of iterations has been exceeded.",
+  "seconds": 1146.8130757999606
+}

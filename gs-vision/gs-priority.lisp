@@ -39,11 +39,9 @@
   (if (and (numberp s) (plusp s)) (act-r-noise s) 0.0))
 
 (defun gs-standard-normal ()
-  "A unit-variance sample from ACT-R's stream, EMMA's approximation.
-
-EMMA's ADD-GAUSSIAN-NOISE takes a logistic sample scaled so its SD matches
-the requested one; the same trick with SD 1 gives sqrt(3)/pi."
-  (act-r-noise (/ (sqrt 3.0) pi)))
+  "Box-Muller normal for the Wald sampler; a scaled logistic is not normal."
+  (* (sqrt (* -2.0d0 (log (max 1.0d-12 (coerce (act-r-random 1.0) 'double-float)))))
+     (cos (* 2.0d0 pi (act-r-random 1.0)))))
 
 (defun gs-wald (mean shape)
   "Inverse Gaussian sample, Michael, Schucany and Haas (1976)."
@@ -323,10 +321,11 @@ effective set size."
                    (* (w-td vis-mod) (gethash e td 0.0))
                    (* (w-h vis-mod) (gethash e hist 0.0))
                    (* (w-v vis-mod) (gs-value-term vis-mod i))
-                   (* (w-s vis-mod) (gsi-prior i))
-                   (- (* (w-e vis-mod) (gs-ecc-deg vis-mod (gsi-x i) (gsi-y i))))
-                   (gs-logistic-noise (gs-noise vis-mod)))))
-        (setf (gsi-priority i) p
+                   (* (w-s vis-mod) (gsi-prior i))))
+             (noisy (+ p (- (* (w-e vis-mod) (gs-ecc-deg vis-mod (gsi-x i) (gsi-y i))))
+                       (gs-logistic-noise (gs-noise vis-mod)))))
+        (setf (gsi-guidance i) p
+              (gsi-priority i) noisy
               (gsi-td i) (gethash e td-raw 0.0)
-              (gethash e table) p)))
+              (gethash e table) noisy)))
     td-raw))

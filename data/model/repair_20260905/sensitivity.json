@@ -1,0 +1,172 @@
+{
+  "rows": [
+    {
+      "parameter": "id_threshold",
+      "value": 0.015870362181506198,
+      "direction": -1,
+      "validation_cost": 162.7291754321947,
+      "lo": 0.015,
+      "hi": 0.08,
+      "boundary": false
+    },
+    {
+      "parameter": "id_threshold",
+      "value": 0.0223703621815062,
+      "direction": 0,
+      "validation_cost": 176.16858822897504,
+      "lo": 0.015,
+      "hi": 0.08,
+      "boundary": false
+    },
+    {
+      "parameter": "id_threshold",
+      "value": 0.028870362181506203,
+      "direction": 1,
+      "validation_cost": 194.75725594238847,
+      "lo": 0.015,
+      "hi": 0.08,
+      "boundary": false
+    },
+    {
+      "parameter": "memory",
+      "value": 10,
+      "direction": -1,
+      "validation_cost": 176.28050666679417,
+      "lo": 4.0,
+      "hi": 18.0,
+      "boundary": false
+    },
+    {
+      "parameter": "memory",
+      "value": 11,
+      "direction": 0,
+      "validation_cost": 176.16858822897504,
+      "lo": 4.0,
+      "hi": 18.0,
+      "boundary": false
+    },
+    {
+      "parameter": "memory",
+      "value": 12,
+      "direction": 1,
+      "validation_cost": 168.07007807558688,
+      "lo": 4.0,
+      "hi": 18.0,
+      "boundary": false
+    },
+    {
+      "parameter": "select_interval",
+      "value": 0.02,
+      "direction": -1,
+      "validation_cost": 178.47964702889945,
+      "lo": 0.02,
+      "hi": 0.1,
+      "boundary": false
+    },
+    {
+      "parameter": "select_interval",
+      "value": 0.027,
+      "direction": 0,
+      "validation_cost": 176.16858822897504,
+      "lo": 0.02,
+      "hi": 0.1,
+      "boundary": false
+    },
+    {
+      "parameter": "select_interval",
+      "value": 0.035,
+      "direction": 1,
+      "validation_cost": 182.4312618050657,
+      "lo": 0.02,
+      "hi": 0.1,
+      "boundary": false
+    },
+    {
+      "parameter": "w_bu",
+      "value": 0.6491781257842456,
+      "direction": -1,
+      "validation_cost": 181.58862551223493,
+      "lo": 0.0,
+      "hi": 4.0,
+      "boundary": false
+    },
+    {
+      "parameter": "w_bu",
+      "value": 1.0491781257842456,
+      "direction": 0,
+      "validation_cost": 176.16858822897504,
+      "lo": 0.0,
+      "hi": 4.0,
+      "boundary": false
+    },
+    {
+      "parameter": "w_bu",
+      "value": 1.4491781257842455,
+      "direction": 1,
+      "validation_cost": 177.57791463894944,
+      "lo": 0.0,
+      "hi": 4.0,
+      "boundary": false
+    },
+    {
+      "parameter": "attn_fvf",
+      "value": 10.28232973272604,
+      "direction": -1,
+      "validation_cost": 177.01127879194073,
+      "lo": 5.0,
+      "hi": 12.0,
+      "boundary": false
+    },
+    {
+      "parameter": "attn_fvf",
+      "value": 10.98232973272604,
+      "direction": 0,
+      "validation_cost": 176.16858822897504,
+      "lo": 5.0,
+      "hi": 12.0,
+      "boundary": false
+    },
+    {
+      "parameter": "attn_fvf",
+      "value": 11.68232973272604,
+      "direction": 1,
+      "validation_cost": 176.98184504342012,
+      "lo": 5.0,
+      "hi": 12.0,
+      "boundary": false
+    },
+    {
+      "parameter": "quit_delta",
+      "value": 0.018409050633545657,
+      "direction": -1,
+      "validation_cost": 193.6933010912311,
+      "lo": 0.002,
+      "hi": 0.15,
+      "boundary": false
+    },
+    {
+      "parameter": "quit_delta",
+      "value": 0.03320905063354566,
+      "direction": 0,
+      "validation_cost": 176.16858822897504,
+      "lo": 0.002,
+      "hi": 0.15,
+      "boundary": false
+    },
+    {
+      "parameter": "quit_delta",
+      "value": 0.04800905063354566,
+      "direction": 1,
+      "validation_cost": 172.2702656213045,
+      "lo": 0.002,
+      "hi": 0.15,
+      "boundary": false
+    }
+  ],
+  "seeds": [
+    251,
+    252
+  ],
+  "split": "validation",
+  "use": "diagnostic only; no reselection after freeze"
+}

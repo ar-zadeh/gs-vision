@@ -1,35 +1,15 @@
-"""Parameter fitting for the gs-vision module, handoff section 8.4.
+"""Fit the hybrid to validated, participant-weighted human training summaries.
 
-Fitting runs against ``reference/gs_hybrid.py``, never against the Lisp
-module: one objective evaluation is 24 cells times a few hundred trials, and
-differential evolution needs thousands of evaluations.  In numpy that is
-minutes to hours; over the ACT-R JSON-RPC link it would be months.  The Lisp
-module is then run once at the fitted values and its misfit reported beside
-the Python one, per cell.  If the two disagree by more than Monte Carlo error,
-the Lisp port is wrong, not the fit.
+The real-data CLI requires --human and --de. The objective averages cell
+quantile RMSE (milliseconds), 1000 times absolute error-rate difference, and
+2000 times timeout fraction; empty correct cells receive a 2000 ms penalty.
+Training fits and larger independent validation simulations remain separate.
+The six-parameter DE space fixes drift, choice temperature, and noise to avoid
+redundant scale fitting. Complete parameter configurations use parameters.py.
 
-Two modes
----------
-``--phase1``
-    Coarse per-task search on *slopes* only, to establish the phase 1
-    parameter sets the handoff asks for ("a first parameter set per task
-    giving Tier 1 slopes within 10 ms/item").  Random search followed by
-    coordinate refinement.  Cheap enough to run in a few minutes.
-``--de``
-    The full section 8.4 objective: differential evolution over
-    ``{beta, mu, theta, dw, w_TD, w_BU, noise, memory, select-interval}``
-    minimising, summed over cells, the RMSE of the .1/.3/.5/.7/.9 RT quantiles
-    plus 10 times the absolute error-rate difference.
-
-Tier 1 targets
---------------
-``search.bwh.harvard.edu`` did not respond on 2026-09-04 (and does not now),
-so the trial-level Wolfe, Palmer and Horowitz (2010) distributions are not
-available and the targets below are the published summary slopes for those
-three tasks.  ``reference/cgs.py`` reproduces them from the Competitive Guided
-Search fits, which is the closest independent check available offline.  When
-the raw data becomes reachable, replace :data:`TIER1_SLOPES` and
-:data:`TIER1_QUANTILES` with values read from it; nothing else changes.
+Historical slope dictionaries and synthetic_target exist only for explicitly
+labeled smoke tests. They are never the default real-data target. ACT-R, not
+mirror fit success, supplies final stimulus-to-keypress human validation.
 """
 
 from __future__ import annotations
@@ -39,7 +19,7 @@ import json
 import math
 import pathlib
 import sys
-from dataclasses import replace
+from dataclasses import replace, asdict
 
 import numpy as np
 
@@ -48,14 +28,16 @@ sys.path.insert(0, str(ROOT))
 
 from reference.gs_hybrid import DEFAULTS, GSParams, run_cells, slopes  # noqa: E402
 from harness.tasks import SET_SIZES, TASKS                             # noqa: E402
+from harness.parameters import configuration
+from harness.human_data import targets as human_targets
 
-# Published slopes, ms/item, (target present, target absent).
+# Historical provisional slopes, NOT measured raw-data targets.
 TIER1_SLOPES = {
     "feature": (1.0, 3.0),
     "conjunction": (20.0, 45.0),
     "spatial": (43.0, 95.0),
 }
-# Published mean correct RT intercepts, ms, same order.
+# Historical provisional intercepts, NOT measured raw-data targets.
 TIER1_INTERCEPTS = {
     "feature": (480.0, 500.0),
     "conjunction": (520.0, 560.0),
@@ -117,10 +99,13 @@ def cell_quantiles(rows, task: str) -> dict:
         for present in (True, False):
             sel = [r for r in rows if r["task"] == task and r["set_size"] == n
                    and r["target_present"] == present]
-            ok = [r["rt"] * 1000.0 for r in sel if r["correct"]]
+            upper = 8000 if task == "spatial" else 4000
+            ok = [r["rt"] * 1000.0 for r in sel if r["correct"] and
+                  200 <= r["rt"] * 1000 <= upper]
             out[(n, present)] = {
                 "q": _quantiles(ok),
-                "err": (sum(1 for r in sel if not r["correct"]) / len(sel)) if sel else np.nan,
+                "err": (sum(1 for r in sel if not r["correct"] and not r.get("timed_out")) / len(sel)) if sel else np.nan,
+                "timeout_rate": sum(bool(r.get("timed_out")) for r in sel) / len(sel) if sel else 1,
                 "n": len(sel),
             }
     return out
@@ -153,8 +138,9 @@ def synthetic_target(task: str) -> dict:
 def quantile_cost(task: str, params: GSParams, n_per_cell: int, seed: int,
                   target: dict | None = None) -> tuple:
     """Section 8.4 objective: quantile RMSE + 10 * |error-rate difference|."""
-    target = target or synthetic_target(task)
-    rows = run_cells(params, tasks=(task,), n_per_cell=n_per_cell, seed=seed)
+    if target is None:
+        raise ValueError("Validated human targets and split required; use synthetic_target explicitly for smoke tests")
+    rows = run_cells(params, tasks=(task,), n_per_cell=n_per_cell, seed=seed, practice=30)
     model = cell_quantiles(rows, task)
     total, per_cell = 0.0, {}
     for key, tgt in target.items():
@@ -165,8 +151,10 @@ def quantile_cost(task: str, params: GSParams, n_per_cell: int, seed: int,
             rmse = float(np.sqrt(np.mean((mq - tq) ** 2)))
         derr = abs(model[key]["err"] - tgt["err"]) if np.isfinite(model[key]["err"]) else 1.0
         per_cell[key] = {"quantile_rmse_ms": rmse, "err_diff": derr}
-        total += rmse + 10.0 * derr * 100.0     # error rates in points, not fractions
-    return total, per_cell
+        timeout_rate = model[key].get("timeout_rate", 0.0)
+        per_cell[key]["timeout_rate"] = timeout_rate
+        total += rmse + 10.0 * derr * 100.0 + 2000.0 * timeout_rate
+    return total / len(target), per_cell
 
 
 # --------------------------------------------------------------------------
@@ -212,7 +200,7 @@ def phase1(task: str, n_iter: int = 60, n_per_cell: int = 120, seed: int = 0,
 
 
 def params_delta(p: GSParams, base: GSParams = DEFAULTS) -> dict:
-    return {k: getattr(p, k) for k in PHASE1_SPACE if getattr(p, k) != getattr(base, k)}
+    return {k: v for k, v in asdict(p).items() if v != asdict(base)[k]}
 
 
 def shared_cost(params: GSParams, n_per_cell: int, seed: int,
@@ -273,37 +261,82 @@ def phase1_shared(n_iter: int = 60, n_per_cell: int = 120, seed: int = 0,
 # --------------------------------------------------------------------------
 
 DE_BOUNDS = [
-    ("choice_beta", 1.0, 20.0),
-    ("id_drift", 0.10, 0.60),
-    ("id_threshold", 0.005, 0.10),
-    ("quit_delta", 0.002, 0.20),
-    ("w_td", 0.2, 3.0),
-    ("w_bu", 0.0, 2.0),
-    ("noise", 0.02, 0.5),
-    ("memory", 2.0, 18.0),
-    ("select_interval", 0.02, 0.15),
+    ("id_threshold", 0.015, 0.08), # drift fixed: avoid fitting two redundant time scales
+    ("memory", 4.0, 18.0),
+    ("select_interval", 0.02, 0.10),
+    ("w_bu", 0.0, 4.0),
+    ("attn_fvf", 5.0, 12.0),
+    ("quit_delta", 0.002, 0.15),
+]
+
+# The September 5 refit.  Identification noise, decision error, onset latency,
+# the quit controller's goal, choice temperature, priority noise and the shape
+# acuity slope were fixed constants in the six-parameter search above.
+# ``shape_theta`` is not a GSParams field: it rewrites the shape entry of
+# ``acuity_theta``.  Drift stays fixed (theta/mu is the mean, sigma the CV).
+DE_BOUNDS_REFIT = [
+    ("id_threshold", 0.015, 0.10),
+    ("id_sigma", 0.01, 0.12),
+    ("id_error", 0.0, 0.04),
+    ("onset_latency", 0.0, 0.20),
+    ("memory", 4.0, 18.0),
+    ("select_interval", 0.02, 0.10),
+    ("w_bu", 0.0, 4.0),
+    ("attn_fvf", 4.0, 16.0),
+    ("quit_delta", 0.002, 0.15),
+    ("error_goal", 0.01, 0.15),
+    ("choice_beta", 1.0, 8.0),
+    ("noise", 0.05, 0.60),
+    ("shape_theta", 0.10, 0.45),
 ]
 
 
+def unpack_vector(x, bounds, base: GSParams) -> GSParams:
+    """Map an optimizer vector onto a complete parameter set."""
+    d = {}
+    for (name, _lo, _hi), v in zip(bounds, x):
+        if name == "memory":
+            d[name] = int(round(v))
+        elif name == "shape_theta":
+            d["acuity_theta"] = tuple((k, float(v) if k == "shape" else t)
+                                      for k, t in base.acuity_theta)
+        else:
+            d[name] = float(v)
+    return replace(base, **d)
+
+
+def pack_params(p: GSParams, bounds) -> list:
+    return [dict(p.acuity_theta)["shape"] if name == "shape_theta" else getattr(p, name)
+            for name, _, _ in bounds]
+
+
+def _de_objective(x, bounds, base, tasks, n_per_cell, seed, targets):
+    """Module-level so that scipy's worker pool can pickle it."""
+    p = unpack_vector(x, bounds, base)
+    return float(np.mean([quantile_cost(t, p, n_per_cell, seed, targets[t])[0] for t in tasks]))
+
+
 def de_fit(tasks=TASKS, n_per_cell: int = 60, maxiter: int = 12, popsize: int = 8,
-           seed: int = 0, base: GSParams = DEFAULTS, verbose: bool = True):
-    """Differential evolution over the section 8.4 parameter set, shared across tasks."""
+           seed: int = 0, base: GSParams = DEFAULTS, verbose: bool = True,
+           targets=None, bounds=DE_BOUNDS, workers: int = 1, x0=None):
+    """Differential evolution over ``bounds``, shared across ``tasks``.
+
+    ``workers`` > 1 evaluates a generation in parallel processes (scipy's
+    deferred updating), which changes the search path but not the objective.
+    """
+    from functools import partial
     from scipy.optimize import differential_evolution
 
-    def unpack(x) -> GSParams:
-        d = {}
-        for (name, _lo, _hi), v in zip(DE_BOUNDS, x):
-            d[name] = int(round(v)) if name == "memory" else float(v)
-        return replace(base, **d)
-
-    def obj(x):
-        p = unpack(x)
-        return sum(quantile_cost(t, p, n_per_cell, seed)[0] for t in tasks)
-
+    if targets is None:
+        raise ValueError("Explicit targets required")
+    obj = partial(_de_objective, bounds=bounds, base=base, tasks=tuple(tasks),
+                  n_per_cell=n_per_cell, seed=seed, targets=targets)
+    extra = dict(workers=workers, updating="deferred") if workers != 1 else {}
     res = differential_evolution(
-        obj, [(lo, hi) for _n, lo, hi in DE_BOUNDS], seed=seed, maxiter=maxiter,
-        popsize=popsize, tol=0.01, polish=False, disp=verbose, init="sobol")
-    return unpack(res.x), float(res.fun), res
+        obj, [(lo, hi) for _n, lo, hi in bounds], seed=seed, maxiter=maxiter,
+        popsize=popsize, tol=0.01, polish=False, disp=verbose, init="latinhypercube",
+        x0=pack_params(base, bounds) if x0 is None else x0, **extra)
+    return unpack_vector(res.x, bounds, base), float(res.fun), res
 
 
 # --------------------------------------------------------------------------
@@ -323,8 +356,17 @@ def main() -> int:
     ap.add_argument("-n", "--n-per-cell", type=int, default=120)
     ap.add_argument("--iters", type=int, default=60)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--human", help="validated human_data.py output directory")
+    ap.add_argument("--popsize", type=int, default=4)
+    ap.add_argument("--synthetic-smoke", action="store_true", help="explicit historical synthetic smoke test")
     ap.add_argument("-o", "--out", default=str(ROOT / "data" / "model" / "fit.json"))
     args = ap.parse_args()
+
+    if not args.human and not args.synthetic_smoke:
+        ap.error("--human is required for real-data fitting; synthetic smoke tests must be explicit")
+    target = human_targets(args.human, "train") if args.human else {t: synthetic_target(t) for t in args.tasks}
+    if args.human and not args.de:
+        ap.error("Real-data fitting uses --de; historical slope-only modes require --synthetic-smoke")
 
     result = {}
     if args.shared:
@@ -355,11 +397,18 @@ def main() -> int:
             print(f"  best  TP {s['tp'][0]:.1f}  TA {s['ta'][0]:.1f}  -> {params_delta(p)}")
     if args.de:
         p, c, _ = de_fit(tuple(args.tasks), n_per_cell=args.n_per_cell,
-                         maxiter=args.iters, seed=args.seed)
-        result["_de"] = {"cost": c, "params": _jsonable(p)}
+                         maxiter=args.iters, seed=args.seed, targets=target, popsize=args.popsize)
+        result["shared" if len(args.tasks) > 1 else args.tasks[0]] = configuration(p) | {
+            "cost": c, "fit_split": "train", "human": args.human,
+            "synthetic": args.synthetic_smoke, "seed": args.seed,
+            "n_per_cell": args.n_per_cell, "maxiter": args.iters,
+            "popsize": args.popsize, "bounds": DE_BOUNDS}
         print("DE best:", params_delta(p), "cost", c)
 
     out = pathlib.Path(args.out)
+    result["_provenance"] = dict(schema_version=1, synthetic=args.synthetic_smoke,
+                                human=args.human, fit_split="train" if args.human else "synthetic",
+                                objective="mean cell quantile RMSE ms + 1000*error-rate difference + 2000*timeout fraction")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2, default=str))
     print("wrote", out)

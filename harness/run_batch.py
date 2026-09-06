@@ -10,8 +10,8 @@ Why the Lisp process is started here rather than attached to
 warning and does nothing once a model exists.  Sending it to an already
 running ACT-R with ``load_act_r_code`` therefore only works before the first
 model is defined, which is not a state a shared session can be relied on to
-be in.  Starting a private SBCL and shutting it down with the module's
-``gs-quit-lisp`` command is deterministic.
+be in. A private handshake connects each session to its own SBCL; closing
+the client and terminating that owned process avoids stale shared sockets.
 
 Between trials the module's per-trial state is cleared with
 ``gs-reset-search`` rather than ``actr.reset()``.  A full reset would wipe the
@@ -33,18 +33,24 @@ import json
 import pathlib
 import subprocess
 import sys
-import threading
+import tempfile
+import types
 import time
+from dataclasses import replace
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "actr7.x" / "tutorial" / "python"))
 
 from harness.tasks import SET_SIZES, TASKS, TEMPLATES, make_display  # noqa: E402
+from harness.parameters import apply as apply_effective, load as load_configuration, lisp_values
+from harness.tasks import SCREEN_CENTER_PX
+from harness.protocol import observer_plan
 
-LOAD_FILE = (ROOT / "gs-vision" / "load-gs-vision.lisp").as_posix()
+LOAD_FILES = {"gs": (ROOT / "gs-vision" / "load-gs-vision.lisp").as_posix(),
+              "gs6": (ROOT / "gs6-vision" / "load-gs6-vision.lisp").as_posix()}
+LOAD_FILE = LOAD_FILES["gs"]
 MODEL_FILE = (ROOT / "models" / "search-model.lisp").as_posix()
-PORT_FILE = pathlib.Path.home() / "act-r-port-num.txt"
 TIMEOUT_S = 20.0           # simulated seconds to allow one trial
 
 
@@ -56,13 +62,15 @@ class ACTRSession:
     """A private SBCL running ACT-R with gs-vision installed."""
 
     def __init__(self, verbose: bool = False, startup_timeout: float = 900.0,
-                 log_path=None):
+                 log_path=None, load_file: str = LOAD_FILE):
         self.verbose = verbose
+        self.load_file = load_file
         self.startup_timeout = startup_timeout
         self.log_path = log_path
         self.log = None
         self.proc = None
         self.actr = None
+        self._startup_dir = None
 
     def check_alive(self):
         if self.proc is not None and self.proc.poll() is not None:
@@ -73,61 +81,71 @@ class ACTRSession:
                 "SBCL exited (code %s).\n%s" % (self.proc.returncode, tail))
 
     def __enter__(self):
-        stamp_before = PORT_FILE.stat().st_mtime if PORT_FILE.exists() else 0.0
+        self._startup_dir = tempfile.TemporaryDirectory(prefix="gs-actr-")
+        handshake = pathlib.Path(self._startup_dir.name) / "dispatcher.txt"
+        ready = ('(with-open-file (s "' + handshake.as_posix() + '" '
+                 ':direction :output :if-exists :supersede) '
+                 '(format s "~{~d~^.~}~%~d~%" (coerce *server-host* \'list) *server-port*))')
         # Keep the Lisp output.  A crash inside SBCL otherwise leaves the run
         # hanging on a dead socket with nothing to read, which is the least
         # debuggable failure this harness can have.
         self.log = open(self.log_path, "w") if self.log_path else None
         self.proc = subprocess.Popen(
             ["sbcl", "--dynamic-space-size", "4096",
-             "--load", LOAD_FILE, "--eval", "(loop (sleep 1))"],
+             "--load", self.load_file, "--eval", ready, "--eval", "(loop (sleep 1))"],
             stdout=(None if self.verbose else (self.log or subprocess.DEVNULL)),
             stderr=subprocess.STDOUT,
             cwd=str(ROOT),
         )
-        deadline = time.time() + self.startup_timeout
-        while time.time() < deadline:
-            if self.proc.poll() is not None:
-                raise RuntimeError(f"SBCL exited during startup (code {self.proc.returncode})")
-            if PORT_FILE.exists() and PORT_FILE.stat().st_mtime > stamp_before:
-                time.sleep(2.0)      # let the dispatcher finish coming up
-                break
-            time.sleep(1.0)
-        else:
-            raise TimeoutError("ACT-R did not write its port file in time")
-
-        import actr                                              # noqa: E402
-        self.actr = actr
-        # actr.py connects at import time and leaves the handle in a module
-        # variable, not behind a function.
-        if actr.current_connection is None:
-            raise RuntimeError("could not connect to the ACT-R dispatcher")
-        return self
-
-    def _quit_lisp(self):
         try:
-            self.actr.call_command("gs-quit-lisp")
+            deadline = time.monotonic() + self.startup_timeout
+            while time.monotonic() < deadline:
+                self.check_alive()
+                if handshake.exists() and len(handshake.read_text().splitlines()) == 2:
+                    break
+                time.sleep(.1)
+            else:
+                raise TimeoutError("ACT-R did not write its private handshake in time")
+            host, port = handshake.read_text().splitlines()
+            # The tutorial auto-connects at import. Redirect that one bootstrap
+            # in memory to our private endpoint; never edit the vendored file or
+            # briefly attach to another process via the shared home port file.
+            client_path = ROOT / "actr7.x/tutorial/python/actr.py"
+            source = client_path.read_text(encoding="utf-8")
+            bootstrap = "current_connection = connection()"
+            if source.count(bootstrap) != 1:
+                raise RuntimeError("ACT-R tutorial bootstrap changed; review session adapter")
+            source = source.replace(bootstrap,
+                f"current_connection = start(host={host!r}, port={int(port)})")
+            self.actr = types.ModuleType("gs_private_actr")
+            self.actr.__file__ = str(client_path)
+            exec(compile(source, str(client_path), "exec"), self.actr.__dict__)
+            if self.actr.current_connection is None:
+                raise RuntimeError("could not connect to the private ACT-R dispatcher")
+            return self
         except Exception:
-            pass
+            self.__exit__()
+            raise
 
     def __exit__(self, *exc):
-        # gs-quit-lisp kills SBCL in the middle of answering, so the client
-        # never sees a reply and actr.py blocks on the socket forever.  Send it
-        # from a daemon thread, give it five seconds, then take the process
-        # down directly.  Without this the harness writes its CSV and then
-        # hangs, which looks exactly like a slow run.
-        if self.actr is not None:
-            t = threading.Thread(target=self._quit_lisp, daemon=True)
-            t.start()
-            t.join(5.0)
+        # Close the client before terminating only the process we own. Each
+        # context has a separate module, so nested/repeated sessions stay valid.
+        if self.actr is not None and self.actr.current_connection is not None:
+            try:
+                self.actr.stop()
+            except OSError:
+                pass
         if self.proc and self.proc.poll() is None:
             self.proc.terminate()
             try:
                 self.proc.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
+                self.proc.wait(timeout=15)
         if self.log:
             self.log.close()
+        if self._startup_dir:
+            self._startup_dir.cleanup()
         return False
 
 
@@ -140,8 +158,7 @@ def param_hash(params: dict) -> str:
 
 
 def apply_params(actr, params: dict):
-    for name, value in params.items():
-        actr.set_parameter_value(name, value)
+    return apply_effective(actr, params)
 
 
 def _template_args(task: str) -> tuple:
@@ -161,7 +178,7 @@ def _template_args(task: str) -> tuple:
 
 def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
               progress=True, prevalence: float = 0.5, priming: bool = False,
-              session=None):
+              session=None, practice=30, trial_gap=2.0, study="benchmark"):
     """Run one block.
 
     ``prevalence`` is the proportion of target-present trials; at 0.5 the plan
@@ -176,27 +193,31 @@ def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
     # :seed is a model parameter, so it has to be set after the model loads;
     # setting it before only draws "no current model" and is ignored.
     actr.set_parameter_value(":seed", [seed, 0])
-    apply_params(actr, params)
-    phash = param_hash(params)
+    effective = apply_params(actr, params)
+    phash = param_hash(effective)
 
-    response = {"key": None}
+    response = {"key": None, "time": None}
 
     def on_key(model, key):
-        response["key"] = key
+        if key in ("j", "f") and response["key"] is None:
+            response["key"] = key
+            response["time"] = actr.get_time()
+            said = key == "j"
+            outcome = ("hit" if said else "miss") if response["present"] else ("fa" if said else "tn")
+            actr.call_command("gs-trial-feedback", outcome)
 
     actr.add_command("gs-batch-key", on_key, "Record the model's keypress.")
     actr.monitor_command("output-key", "gs-batch-key")
     actr.install_device(["motor", "keyboard"])
 
-    trial_rows, fix_rows = [], []
-    rng = np.random.default_rng(seed)
-    if abs(prevalence - 0.5) < 1e-9:
-        plan = [(t, n, p) for t in tasks for n in set_sizes for p in (True, False)
-                for _ in range(n_per_cell)]
-    else:
-        plan = [(t, n, bool(rng.random() < prevalence))
-                for t in tasks for n in set_sizes for _ in range(2 * n_per_cell)]
-    rng.shuffle(plan)
+    trial_rows, fix_rows, event_rows = [], [], []
+    rng = np.random.default_rng(seed + 1000)
+    plan, practices, blocks, task_rngs = [], [], [], {}
+    for task in tasks:
+        entries, task_rngs[task] = observer_plan(task, set_sizes, n_per_cell, seed, practice, prevalence)
+        plan.extend((task, n, p) for n, p, _, _ in entries)
+        practices.extend(pr for _, _, pr, _ in entries)
+        blocks.extend(b for _, _, _, b in entries)
 
     # Priming: hold the target colour for a run of 1 to 4 trials, then switch.
     colors, cur, left = [], "red", 0
@@ -212,33 +233,63 @@ def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
 
     it = tqdm(plan, desc=f"{tag} seed{seed}", disable=not progress)
     for trial, (task, n, present) in enumerate(it):
+        if trial > 0 and task != plan[trial - 1][0]:
+            actr.reset()
+            actr.set_parameter_value(":seed", [seed, 0])
+            effective = apply_params(actr, params)
+            actr.install_device(["motor", "keyboard"])
         tcolor = colors[trial]
-        display = make_display(task, n, present, rng, target_color=tcolor)
+        distractor_present = present if study == "capture" else None
+        if study == "capture":
+            from harness.tasks import make_singleton_display
+            col = str(task_rngs[task].choice(["red", "blue"]))
+            display = make_singleton_display(n, present, task_rngs[task], distractor_color=col)
+            present = True
+        else:
+            display = make_display(task, n, present, task_rngs[task], target_color=tcolor)
+        if study == "unknown_priming":
+            display.items = [replace(it, shape="two" if it.is_target else "five") for it in display.items]
         response["key"] = None
-        actr.delete_all_visicon_features()
+        response["time"] = None
+        response["present"] = present
         actr.call_command("gs-reset-search")
+        actr.delete_all_visicon_features()
+        actr.call_command("gs-benchmark-gaze", *SCREEN_CENTER_PX)
+        t0 = actr.get_time()
         actr.add_visicon_features(*display.visicon_features())
         color, orient, shape = _template_args(task)
         if task == "feature":
             color = tcolor
-        actr.call_command("gs-trial-setup", task, color, orient, shape)
+        setup_task = task
+        if study == "capture":
+            setup_task, color, orient, shape = "singleton", None, "shallow", None
+        elif study == "unknown_priming":
+            setup_task, color, orient, shape = "spatial", None, None, "two"
+        actr.call_command("gs-trial-setup", setup_task, color, orient, shape)
 
-        t0 = actr.get_time()
         actr.run(TIMEOUT_S, False)
-        rt_ms = actr.get_time() - t0
+        loop_end = actr.get_time()
+        rt_ms = response["time"] - t0 if response["time"] is not None else None
 
         key = response["key"]
         said_present = key == "j"
         correct = said_present == present
         label = ("hit" if said_present else "miss") if present else \
                 ("fa" if said_present else "tn")
-        if key is not None:
-            actr.call_command("gs-trial-feedback", label)
-            actr.run(1.0, False)          # let report-outcome fire
+        if key is None:
+            actr.call_command("gs-cancel-search")
+        next_onset = (response["time"] if key is not None else loop_end) + trial_gap * 1000
+        if actr.get_time() > next_onset:
+            raise RuntimeError("Event-loop return exceeded the declared intertrial interval")
+        actr.run_full_time((next_onset - actr.get_time()) / 1000, False)
 
         if session is not None and trial % 50 == 0:
             session.check_alive()
         stats = actr.call_command("gs-search-stats") or [0, 0, 0, "none"]
+        events = actr.call_command("gs-event-log") or []
+        request_time = next((e[0] for e in events if e[1] == "request"), None)
+        result_time = next((e[0] for e in events if e[1] in ("buffer", "failure")), None)
+        state = actr.call_command("gs-state")
         trial_rows.append({
             "subject_seed": seed, "task": task, "trial": trial, "set_size": n,
             "target_present": int(present),
@@ -251,14 +302,25 @@ def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
             "search_ms": stats[2],
             "quit_reason": stats[3], "param_hash": phash,
             "timed_out": int(key is None),
+            "stimulus_ms": t0, "keypress_ms": response["time"], "loop_end_ms": loop_end,
+            "request_ms": request_time, "result_ms": result_time,
+            "practice": int(practices[trial]), "qt_scale": state[0],
+            "block": blocks[trial],
+            "feedback_count": state[2],
+            "start_offset": state[3] if len(state) > 3 else "",
             "target_color": tcolor,
             "color_repeat": int(trial > 0 and colors[trial - 1] == tcolor),
             "prevalence": prevalence,
+            "study": study, "distractor_present": distractor_present,
         })
         for idx, fx in enumerate(actr.call_command("gs-fixation-log") or []):
-            fix_rows.append({"trial": trial, "idx": idx, "t": fx[0],
+            fix_rows.append({"trial": trial, "task": task, "subject_seed": seed,
+                             "practice": int(practices[trial]), "idx": idx, "t": fx[0],
                              "x": round(fx[1], 1), "y": round(fx[2], 1),
                              "dur": fx[3]})
+        for timestamp, kind, item in events:
+            event_rows.append(dict(trial=trial, task=task, subject_seed=seed,
+                                   t_ms=timestamp, kind=kind, item=item))
 
     actr.remove_command_monitor("output-key", "gs-batch-key")
     actr.remove_command("gs-batch-key")
@@ -268,6 +330,16 @@ def run_batch(actr, tasks, set_sizes, n_per_cell, seed, params, out_dir, tag,
     fix_path = out_dir / f"{tag}_seed{seed}_fixations.csv"
     _write_csv(trials_path, trial_rows)
     _write_csv(fix_path, fix_rows)
+    _write_csv(out_dir / f"{tag}_seed{seed}_events.csv", event_rows)
+    (out_dir / f"{tag}_seed{seed}_manifest.json").write_text(json.dumps(dict(
+        schema_version=1, run_id=f"{tag}_seed{seed}", requested=params, effective=effective,
+        effective_hash=phash, seed=seed, tasks=list(tasks), set_sizes=list(set_sizes),
+        retained_per_cell=n_per_cell, synthetic_practice_per_block=practice,
+        total_rt="stimulus_ms to first valid keypress_ms", fixation_window="request to result",
+        gaze="untimed central fixation; preparation history reset; learned state retained",
+        task_state="separate participant per task", feedback="requested at keypress, production 50 ms later",
+        trial_gap_seconds=trial_gap,
+        prevalence=prevalence, study=study), indent=2))
     return trials_path, fix_path, trial_rows
 
 
@@ -285,20 +357,10 @@ def _write_csv(path: pathlib.Path, rows: list):
 
 def load_params(path: str | None, task_key: str = "shared") -> dict:
     """Translate a fit.json entry into :gs-* parameter settings."""
-    if not path:
-        return {}
-    data = json.loads(pathlib.Path(path).read_text())
-    entry = data.get(task_key) or data.get("_de") or {}
-    delta = entry.get("delta") or {}
-    name_map = {
-        "memory": ":gs-memory", "w_e": ":gs-w-e", "noise": ":gs-noise",
-        "choice_beta": ":gs-choice-beta", "select_interval": ":gs-select-interval",
-        "diffuser_capacity": ":gs-diffuser-capacity", "attn_fvf": ":gs-attn-fvf",
-        "max_fixation": ":gs-max-fixation", "w_td": ":gs-w-td", "w_bu": ":gs-w-bu",
-        "id_drift": ":gs-id-drift", "id_threshold": ":gs-id-threshold",
-        "quit_delta": ":gs-quit-delta",
-    }
-    return {name_map[k]: v for k, v in delta.items() if k in name_map}
+    from harness.parameters import check_response_contract
+    params = load_configuration(path, task_key)
+    check_response_contract(params)
+    return lisp_values(params)
 
 
 def main() -> int:
@@ -316,6 +378,9 @@ def main() -> int:
                     help="proportion of target-present trials (phase 6)")
     ap.add_argument("--priming", action="store_true",
                     help="alternate the feature target colour in runs (phase 6)")
+    ap.add_argument("--practice", type=int, default=30, help="synthetic practice trials per block; recorded separately")
+    ap.add_argument("--module", choices=sorted(LOAD_FILES), default="gs",
+                    help="which vision module to load: gs (gs-vision) or gs6 (gs6-vision)")
     args = ap.parse_args()
 
     params = load_params(args.params, args.params_key)
@@ -324,13 +389,13 @@ def main() -> int:
 
     log_path = pathlib.Path(args.out) / f"{args.tag}_lisp.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    with ACTRSession(verbose=args.verbose, log_path=log_path) as s:
+    with ACTRSession(verbose=args.verbose, log_path=log_path, load_file=LOAD_FILES[args.module]) as s:
         for seed in args.seeds:
             t, f, rows = run_batch(s.actr, args.tasks, args.set_sizes,
                                    args.n_per_cell, seed, params,
                                    pathlib.Path(args.out), args.tag,
                                    prevalence=args.prevalence, priming=args.priming,
-                                   session=s)
+                                   session=s, practice=args.practice)
             done = sum(1 for r in rows if r["rt_ms"] != "")
             print(f"seed {seed}: {len(rows)} trials, {done} responded -> {t.name}, {f.name}")
     return 0

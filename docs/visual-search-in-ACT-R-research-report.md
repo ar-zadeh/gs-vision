@@ -1,5 +1,11 @@
 # Human-like Visual Search in ACT-R: Theory, PAAV, Design, and Validation
 
+This historical architecture proposal is superseded by
+[the implementation specification](IMPLEMENTATION-HANDOFF.md) and
+[the validation repair](VALIDATION-REPAIR-HANDOFF.md). The repository
+now uses a vision subclass on ACT-R 7.31.4; old missing-ACT-R and
+fork/vision-10.1 statements below describe the pre-implementation state.
+
 Compiled 2026-09-04 from primary sources (papers, ACT-R 7.31 source and reference manual, dataset pages). Items that could not be verified against a primary source are marked **[unverified]**.
 
 Local environment checked: SBCL 2.6.3 with QuickLisp and Python 3.12 (numpy/pandas/torch) are installed. ACT-R itself is not yet in this project and must be downloaded into it; see §1.2 of `IMPLEMENTATION-HANDOFF.md`. The ACT-R facts below were read from a copy of the same 7.31 release (vision module v10.1, `extras/emma` v8.2a1) present elsewhere on the machine. The default vision parameters in that install are `:visual-attention-latency 0.085`, `:visual-num-finsts 4`, `:visual-finst-span 3.0`, `:visual-onset-span 0.5`, `:visual-movement-tolerance 0.5`. EMMA defaults: K = 0.006, k = 0.4, saccade 20 ms + 2 ms/deg, 50 ms non-labile init, 50 ms per prepared feature.

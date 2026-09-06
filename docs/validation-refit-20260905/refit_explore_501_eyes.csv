@@ -1,0 +1,4 @@
+task,mean_duration_ms,mean_amplitude_deg,mean_count,refixation_rate,rejected_per_fixation,window
+conjunction,206.18744803152453,13.760027365958829,1.7288125,0.0015436068947774634,2.8623332489787066,search request to visual result; execution excluded
+feature,183.44285627394927,11.569145333246782,1.0275625,0.0,1.2681102122741925,search request to visual result; execution excluded
+spatial,157.56853767170287,12.938316429777123,5.0095625,0.0032578367340576433,1.4355420258755132,search request to visual result; execution excluded

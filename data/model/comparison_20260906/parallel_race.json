@@ -1,0 +1,120 @@
+{
+  "model": "parallel_race",
+  "title": "Parallel race (capacity exponent)",
+  "n_fitted": 14,
+  "per_task": false,
+  "bounds": [
+    [
+      "mu",
+      0.05,
+      2.0
+    ],
+    [
+      "theta",
+      0.01,
+      0.1
+    ],
+    [
+      "kappa",
+      0.0,
+      1.5
+    ],
+    [
+      "g_feature",
+      1.0,
+      50.0
+    ],
+    [
+      "g_conjunction",
+      1.0,
+      50.0
+    ],
+    [
+      "g_spatial",
+      1.0,
+      50.0
+    ],
+    [
+      "r_feature",
+      0.1,
+      20.0
+    ],
+    [
+      "r_conjunction",
+      0.1,
+      20.0
+    ],
+    [
+      "r_spatial",
+      0.1,
+      20.0
+    ],
+    [
+      "p_miss",
+      0.0,
+      0.3
+    ],
+    [
+      "t0_yes",
+      0.15,
+      0.6
+    ],
+    [
+      "t0_no",
+      0.15,
+      0.6
+    ],
+    [
+      "c",
+      2.0,
+      60.0
+    ],
+    [
+      "m",
+      0.0,
+      0.05
+    ]
+  ],
+  "defaults": {
+    "mu": 0.25,
+    "theta": 0.03,
+    "kappa": 0.5,
+    "g_feature": 10.0,
+    "g_conjunction": 3.0,
+    "g_spatial": 1.0,
+    "r_feature": 1.0,
+    "r_conjunction": 1.0,
+    "r_spatial": 1.0,
+    "p_miss": 0.02,
+    "t0_yes": 0.35,
+    "t0_no": 0.35,
+    "c": 12.0,
+    "m": 0.01
+  },
+  "fit_split": "train",
+  "seed": 1001,
+  "n_per_cell": 200,
+  "maxiter": 60,
+  "popsize": 8,
+  "values": {
+    "mu": 0.3166182301735122,
+    "theta": 0.08587062468767745,
+    "kappa": 0.40973581036633444,
+    "g_feature": 4.057736414538574,
+    "g_conjunction": 4.39538785848908,
+    "g_spatial": 1.0910720438506125,
+    "r_feature": 16.155078849601164,
+    "r_conjunction": 7.282662235724288,
+    "r_spatial": 1.493732899031933,
+    "p_miss": 0.000551457901483865,
+    "t0_yes": 0.4347612674234533,
+    "t0_no": 0.372711403851972,
+    "c": 13.186478167057064,
+    "m": 0.013404526961160835
+  },
+  "cost": 129.97878164802353,
+  "evaluations": 6832,
+  "fitted": true,
+  "optimizer_message": "Maximum number of iterations has been exceeded.",
+  "seconds": 60.820298600010574
+}

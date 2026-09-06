@@ -36,9 +36,6 @@
 (defparameter *gs-post-saccade-delay* 50
   "Milliseconds after a landing before a pending item is re-examined.")
 
-(defparameter *gs-id-sigma* 0.1
-  "Fixed noise of the Wald identification process (handoff section 5.4).")
-
 ;;; ------------------------------------------------------------------
 ;;; Bookkeeping
 ;;; ------------------------------------------------------------------
@@ -56,11 +53,13 @@ buffer failure flag, and nothing else would prompt the productions to look."
                           :details (apply #'format nil fmt args)))
 
 (defun gs-cancel-events (vis-mod)
-  (dolist (acc (list #'select-event #'fix-event #'sacc-event))
+  (dolist (acc (list #'select-event #'fix-event #'sacc-event #'delivery-event))
     (awhen (funcall acc vis-mod) (delete-event it)))
   (setf (select-event vis-mod) nil
         (fix-event vis-mod) nil
         (sacc-event vis-mod) nil
+        (delivery-event vis-mod) nil
+        (eye-moving vis-mod) nil
         (saccade-flight vis-mod) nil)
   (dolist (d (diffuser vis-mod))
     (awhen (gsd-event d) (delete-event it)))
@@ -78,6 +77,7 @@ later trial.  The stock module never hits this because MOVE-ATTENTION marks
 the visual-location buffer's copy, which outlives the visicon.  Clearing the
 marker when a search starts or when the experiment resets the trial is both
 the fix and the right semantics: a new display has no attended location."
+  (gs-close-fixation vis-mod)
   (gs-cancel-events vis-mod)
   (bt:with-recursive-lock-held ((marker-lock vis-mod))
     (set-current-marker vis-mod nil)
@@ -87,10 +87,21 @@ the fix and the right semantics: a new display has no attended location."
         (rejections vis-mod) 0
         (search-active vis-mod) nil
         (quit-reason vis-mod) nil
-        (n-fixations vis-mod) 0
         (last-saccade vis-mod) nil
-        (last-landed vis-mod) nil
-        (fixation-log vis-mod) nil))
+        (last-landed vis-mod) nil))
+
+(defun gs-record-event (vis-mod kind &optional item)
+  (push (list (mp-time-ms) kind (and item (princ-to-string item))) (event-log vis-mod)))
+
+(defun gs-close-fixation (vis-mod)
+  "Close the stationary interval at its occupied position, once."
+  (when (and (fix-start vis-mod) (search-active vis-mod))
+    (when (log-fixations vis-mod)
+      (push (list (fix-start vis-mod) (aref (eye-xyz vis-mod) 0)
+                  (aref (eye-xyz vis-mod) 1)
+                  (max 0 (- (mp-time-ms) (fix-start vis-mod))))
+            (fixation-log vis-mod)))
+    (setf (fix-start vis-mod) nil)))
 
 (defun gs-eligible (vis-mod &optional radius)
   "Items in iconic memory that may be selected: not rejected, not in the
@@ -130,6 +141,9 @@ quit weight is negligible and the search never stops."
           (search-start vis-mod) (mp-time-ms)
           (fix-start vis-mod) (mp-time-ms)
           (search-result vis-mod) 'none)
+    (setf (fixation-log vis-mod) nil (n-fixations vis-mod) 1
+          (event-log vis-mod) nil)
+    (gs-record-event vis-mod "request")
     (setf (attend-failure vis-mod) nil)
     (change-state vis-mod :exec 'BUSY :proc 'BUSY)
     (gs-refresh-iconic vis-mod)
@@ -144,15 +158,17 @@ quit weight is negligible and the search never stops."
     (gs-trace "GS-SEARCH start template ~a n-eff ~,0f qt ~,2f"
               (template vis-mod) (search-n-eff vis-mod) (search-qt vis-mod))
     (gs-schedule-fixation-timeout vis-mod)
-    (gs-schedule-select vis-mod)))
+    (gs-schedule-select vis-mod (onset-latency vis-mod))))
 
-(defun gs-schedule-select (vis-mod)
+(defun gs-schedule-select (vis-mod &optional (extra-ms 0))
+  "Schedule the next covert selection; EXTRA-MS delays the first one (:gs-onset-latency)."
   (setf (select-event vis-mod)
-        (schedule-event-relative (select-interval vis-mod) 'gs-select
+        (schedule-event-relative (+ extra-ms (select-interval vis-mod)) 'gs-select
                                  :time-in-ms t :module :vision :destination :vision
                                  :output nil :maintenance t)))
 
 (defun gs-end-search (vis-mod)
+  (gs-close-fixation vis-mod)
   (gs-cancel-events vis-mod)
   (setf (search-elapsed vis-mod) (- (mp-time-ms) (search-start vis-mod))
         (search-active vis-mod) nil))
@@ -164,6 +180,7 @@ A buffer cannot hold a chunk and a failure flag at once (handoff section 3),
 so a failed search leaves the visual buffer empty with state error, exactly
 like a retrieval failure."
   (when (search-active vis-mod)
+    (gs-record-event vis-mod "failure" reason)
     (gs-end-search vis-mod)
     (setf (search-result vis-mod) 'failed
           (quit-reason vis-mod) reason)
@@ -177,36 +194,37 @@ like a retrieval failure."
               (- (mp-time-ms) (search-start vis-mod)))))
 
 (defun gs-finish-hit (vis-mod icon)
-  (gs-end-search vis-mod)
+  ;; Wald completes recognition once all template features are available.
+  ;; Buffer construction is ACT-R's existing encoding-complete operation.
+  ;; A peripheral recognition does not teleport gaze to the identified item.
+  (gs-cancel-events vis-mod)
   (setf (search-result vis-mod) 'found
         (quit-reason vis-mod) 'hit
         (last-found vis-mod) (gsi-entry icon))
   (let* ((ecc (gs-ecc-deg vis-mod (gsi-x icon) (gsi-y icon)))
-         (secs (gs-encoding-time vis-mod ecc))
+         (secs (if (recognition-extra vis-mod) (gs-encoding-time vis-mod ecc) 0))
          (chunk (gsi-chunk icon)))
-    ;; The eye follows a hit: EMMA's encoding at a large eccentricity already
-    ;; includes the saccade (see gs-encoding-time), so move the gaze too.
-    (when (> ecc 1.0)
-      (gs-set-eye vis-mod (gsi-x icon) (gsi-y icon))
-      (incf (n-fixations vis-mod))
-      (when (log-fixations vis-mod)
-        (push (list (fix-start vis-mod) (gsi-x icon) (gsi-y icon)
-                    (- (mp-time-ms) (fix-start vis-mod)))
-              (fixation-log vis-mod)))
-      (setf (fix-start vis-mod) (mp-time-ms)))
-    ;; GS-END-SEARCH stopped the clock before the encoding was scheduled, so
-    ;; add it back: the search is not over until the object is in the buffer,
-    ;; and reference/gs_hybrid.py counts it the same way.
-    (incf (search-elapsed vis-mod) (round (seconds->ms secs)))
+    (gs-record-event vis-mod "identified" chunk)
     (gs-trace "GS-DECIDE ~a hit" chunk)
     (if (and chunk (chunk-p-fct chunk))
-        (schedule-event-relative (seconds->ms secs) 'encoding-complete
+        (setf (delivery-event vis-mod)
+        (schedule-event-relative (seconds->ms secs) 'gs-deliver-hit
                                  :time-in-ms t :module :vision :destination :vision
                                  :output 'medium
-                                 :params (list chunk (xyz-loc chunk vis-mod) nil
-                                               :requested (search-requested vis-mod))
+                                 :params (list chunk)
                                  :details (concatenate 'string "Encoding-complete "
-                                                       (symbol-name chunk)))
+                                                       (symbol-name chunk))))
+      (gs-quit-search vis-mod 'target-vanished))))
+
+(defun gs-deliver-hit (vis-mod chunk)
+  (setf (delivery-event vis-mod) nil)
+  (when (search-active vis-mod)
+    (if (and (chunk-p-fct chunk)
+             (find chunk (visicon-chunks vis-mod) :test 'eq))
+        (progn
+          (encoding-complete vis-mod chunk (xyz-loc chunk vis-mod) nil
+                             :requested (search-requested vis-mod))
+          (gs-record-event vis-mod "buffer" chunk))
       (gs-quit-search vis-mod 'target-vanished))))
 
 ;;; ------------------------------------------------------------------
@@ -226,20 +244,43 @@ like a retrieval failure."
   (bt:with-recursive-lock-held ((gs-lock vis-mod))
     (setf (select-event vis-mod) nil)
     (when (search-active vis-mod)
-      (when (< (length (diffuser vis-mod)) (diffuser-capacity vis-mod))
+      (when (and (not (eye-moving vis-mod))
+                 (not (and (member (search-stop vis-mod) '(adaptive both))
+                           (>= (rejections vis-mod) (search-qt vis-mod))
+                           (diffuser vis-mod)))
+                 (< (length (diffuser vis-mod)) (diffuser-capacity vis-mod)))
         (let* ((everywhere (gs-eligible vis-mod))
-               (winner (gs-best-by-priority everywhere))
+               (winner (if (revised-saccades vis-mod)
+                           (gs-best-guidance everywhere) (gs-best-by-priority everywhere)))
                (near (gs-eligible vis-mod (attn-fvf vis-mod))))
-          (cond ((and winner (not (member winner near)))
-                 (gs-request-saccade vis-mod winner))
-                (near
+          ;; :gs-saccade-trigger -- everything close has been dealt with:
+          ;; start moving the eye (distance-penalised destination) while
+          ;; covert selection continues during the preparation.
+          (when (and (plusp (saccade-trigger vis-mod)) near (not (saccade-flight vis-mod))
+                     (> (loop for i in near minimize (gs-ecc-deg vis-mod (gsi-x i) (gsi-y i)))
+                        (saccade-trigger vis-mod)))
+            (gs-request-saccade vis-mod))
+          (when (and winner (not (member winner near))
+                     (or (not (revised-saccades vis-mod)) (null near)
+                         (> (gsi-guidance winner)
+                            (+ (gsi-guidance (gs-best-guidance near)) (saccade-margin vis-mod)))))
+            ;; With :gs-explore-proximity and an empty attentional field the
+            ;; destination is gs-best-saccade's guidance-minus-distance choice
+            ;; rather than the guidance winner with icon-order tie-breaking.
+            (gs-request-saccade vis-mod (if (and (explore-proximity vis-mod) (null near))
+                                            nil winner))
+            ;; Weak distractors are not useful preparation work when a known
+            ;; stronger candidate is being approached (effective N can be 1).
+            (when (revised-saccades vis-mod) (setf near nil)))
+          (cond ((and near (or (revised-saccades vis-mod) (member winner near)))
                  (let* ((pick (gs-luce-pick vis-mod near))
                         (mean (/ (id-threshold vis-mod) (id-drift vis-mod)))
                         (shape (/ (expt (id-threshold vis-mod) 2)
-                                  (expt *gs-id-sigma* 2)))
+                                  (expt (id-sigma vis-mod) 2)))
                         (ms (max 0 (round (seconds->ms (gs-wald mean shape))))))
                    (gs-trace "GS-SELECT ~a priority ~,3f" (gsi-chunk pick)
                              (gsi-priority pick))
+                   (gs-record-event vis-mod "select" (gsi-chunk pick))
                    (push (make-gs-diff
                           :entry (gsi-entry pick)
                           :event (schedule-event-relative
@@ -248,7 +289,7 @@ like a retrieval failure."
                                   :output nil :maintenance t
                                   :params (list (gsi-entry pick))))
                          (diffuser vis-mod))))
-                (t (gs-request-saccade vis-mod)))))
+                ((null near) (gs-request-saccade vis-mod)))))
       (when (search-active vis-mod) (gs-schedule-select vis-mod)))))
 
 ;;; ------------------------------------------------------------------
@@ -275,6 +316,7 @@ like a retrieval failure."
           (icon (gethash entry (iconic vis-mod)))
           (now (mp-time-ms)))
       (when (and d icon (search-active vis-mod))
+        (gs-record-event vis-mod "decision" (gsi-chunk icon))
         (setf (gsd-event d) nil)
         (let ((missing (gs-missing-features vis-mod icon now)))
           (cond
@@ -287,11 +329,20 @@ like a retrieval failure."
              (setf (gsd-pending d) t)
              (gs-trace "GS-DECIDE ~a pending ~a" (gsi-chunk icon) missing)
              (gs-request-saccade vis-mod))
-            ((gs-item-matches-p vis-mod icon)
-             (gs-finish-hit vis-mod icon))
             (t
-             (gs-trace "GS-DECIDE ~a reject" (gsi-chunk icon))
-             (gs-reject vis-mod entry))))))))
+             ;; :gs-id-error is the second decision boundary: with that
+             ;; probability the decision flips, rejecting a target (a miss)
+             ;; or accepting a distractor (a false alarm).
+             (let ((match (gs-item-matches-p vis-mod icon)))
+               (when (and (plusp (id-error vis-mod))
+                          (< (act-r-random 1.0) (id-error vis-mod)))
+                 (setf match (not match))
+                 (gs-trace "GS-DECIDE ~a decision error" (gsi-chunk icon)))
+               (if match
+                   (gs-finish-hit vis-mod icon)
+                 (progn
+                   (gs-trace "GS-DECIDE ~a reject" (gsi-chunk icon))
+                   (gs-reject vis-mod entry)))))))))))
 
 (defun gs-resume-pending (vis-mod landed-entry)
   "After a landing, re-examine everything that was waiting on foveation."
@@ -317,7 +368,16 @@ like a retrieval failure."
   (when (> (length (rejected vis-mod)) (gs-memory vis-mod))
     (setf (rejected vis-mod) (subseq (rejected vis-mod) 0 (gs-memory vis-mod))))
   (incf (rejections vis-mod))
-  (incf (quit-weight vis-mod) (quit-delta vis-mod))
+  ;; With :gs-adaptive-quit-delta the increment is divided by the persistent
+  ;; adaptive scale, so a miss (which raises the scale) also makes competitive
+  ;; quitting rarer; otherwise the two quit rules are independent and the
+  ;; feedback controller cannot reach its error goal once competitive quits
+  ;; dominate.
+  (incf (quit-weight vis-mod)
+        (if (adaptive-quit-delta vis-mod)
+            (/ (quit-delta vis-mod)
+               (max 0.05 (or (quit-threshold vis-mod) (qt-init vis-mod))))
+          (quit-delta vis-mod)))
   (gs-check-quit vis-mod))
 
 (defun gs-check-quit (vis-mod)
@@ -327,15 +387,24 @@ like a retrieval failure."
                          for i = (gethash e (iconic vis-mod))
                          when (and i (not (member e (rejected vis-mod) :test 'equal)))
                            collect i))
-             (w (gs-centred-weights vis-mod live))
+             (w (if (quit-noise-free vis-mod)
+                    (gs-quit-weights vis-mod live) (gs-centred-weights vis-mod live)))
              (denom (+ (if w (reduce #'+ w) 0.0) (quit-weight vis-mod))))
         (when (and (plusp denom)
                    (< (act-r-random 1.0) (/ (quit-weight vis-mod) denom)))
           (gs-quit-search vis-mod 'cgs)
           (return-from gs-check-quit))))
     (when (and (member stop '(adaptive both))
+               (null (diffuser vis-mod))
                (>= (rejections vis-mod) (search-qt vis-mod)))
       (gs-quit-search vis-mod 'threshold))))
+
+(defun gs-quit-weights (vis-mod icons)
+  "Unresolved items retain weights; noise and eccentricity cannot dominate quitting."
+  (when icons
+    (let ((mean (/ (reduce #'+ icons :key #'gsi-guidance) (length icons)))
+          (beta (min 4.0 (choice-beta vis-mod))))
+      (mapcar (lambda (i) (exp (min 50.0 (* beta (- (gsi-guidance i) mean))))) icons))))
 
 ;;; ------------------------------------------------------------------
 ;;; Feedback (section 5.6)

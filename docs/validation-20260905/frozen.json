@@ -1,0 +1,195 @@
+{
+  "shared_winner": "shared_201",
+  "shared_validation_scores": {
+    "defaults": 443.50243907350983,
+    "historical_shared": 188.50448533263327,
+    "shared_201": 168.430095240535,
+    "shared_202": 237.94067202306042
+  },
+  "validation_seeds": [
+    211,
+    212
+  ],
+  "validation_n_per_cell": 250,
+  "train_optimizer_seeds": [
+    201,
+    202
+  ],
+  "bounds": [
+    [
+      "id_threshold",
+      0.015,
+      0.08
+    ],
+    [
+      "memory",
+      4.0,
+      18.0
+    ],
+    [
+      "select_interval",
+      0.02,
+      0.1
+    ],
+    [
+      "w_bu",
+      0.0,
+      4.0
+    ],
+    [
+      "attn_fvf",
+      5.0,
+      12.0
+    ],
+    [
+      "quit_delta",
+      0.002,
+      0.15
+    ]
+  ],
+  "human_manifest": {
+    "schema_version": 1,
+    "sources": [
+      {
+        "source_file": "RVvGV.txt",
+        "task": "feature",
+        "bytes": 1055246,
+        "sha256": "cd3c9266103a84c8bdb449ff342c93e180b67d14f35638259645cda9b928323f",
+        "rows": 35948,
+        "participants": 9,
+        "malformed_rows": 0,
+        "duplicate_full_records": 227,
+        "repeated_trial_numbers": 31948,
+        "trial_number_resets": 80,
+        "conditions": [
+          "RVvGV"
+        ],
+        "exclusions": {
+          "included": 35921,
+          "below_200": 16,
+          "above_upper": 11
+        },
+        "accuracy_denominator": 35948,
+        "accuracy_denominator_if_rt_trimmed": 35921,
+        "errors_excluded_by_rt": 6
+      },
+      {
+        "source_file": "RVvRHGV.txt",
+        "task": "conjunction",
+        "bytes": 1154478,
+        "sha256": "6e06a1ae64ff474fea053dc08f787df721ed6b3b8a9bccb019e6c990e7b537b5",
+        "rows": 39962,
+        "participants": 10,
+        "malformed_rows": 0,
+        "duplicate_full_records": 135,
+        "repeated_trial_numbers": 34662,
+        "trial_number_resets": 103,
+        "conditions": [
+          "RVvRHGV"
+        ],
+        "exclusions": {
+          "included": 39922,
+          "above_upper": 35,
+          "below_200": 5
+        },
+        "accuracy_denominator": 39962,
+        "accuracy_denominator_if_rt_trimmed": 39922,
+        "errors_excluded_by_rt": 3
+      },
+      {
+        "source_file": "2_vs_5.txt",
+        "task": "spatial",
+        "bytes": 1010270,
+        "sha256": "50190cfa880fc810f386f6306e9ef82b120788ce5ea6b572d276c287350391ef",
+        "rows": 35867,
+        "participants": 9,
+        "malformed_rows": 0,
+        "duplicate_full_records": 36,
+        "repeated_trial_numbers": 32371,
+        "trial_number_resets": 162,
+        "conditions": [
+          "2_vs_5"
+        ],
+        "exclusions": {
+          "included": 35854,
+          "below_200": 8,
+          "above_upper": 5
+        },
+        "accuracy_denominator": 35867,
+        "accuracy_denominator_if_rt_trimmed": 35854,
+        "errors_excluded_by_rt": 5
+      }
+    ],
+    "total_rows": 111777,
+    "split_id": "3909d6744a259e3a836b682ca7f2f15766cb8c1c58581145042a72c5fdb7f841",
+    "protocol_id": "6c1db6a6e5b5d1bb4880ac8a67a28a653a2804a5826ca2e1b233218c86bb9f13",
+    "normalized_sha256": "84048fc7f845ef85e5ccd046fe58dc519623fdd8a587da3cee6202c2fb657add"
+  },
+  "feature": {
+    "winner": "shared",
+    "validation_costs": {
+      "shared": 99.14840837999557,
+      "historical": 155.35545337423656,
+      "221": 106.00659062719632,
+      "222": 127.40190432058512
+    },
+    "extra_free_parameters": 0,
+    "optimizer_seeds": [
+      221,
+      222
+    ],
+    "validation_seeds": [
+      231,
+      232
+    ]
+  },
+  "conjunction": {
+    "winner": "historical",
+    "validation_costs": {
+      "shared": 173.19827446791948,
+      "historical": 127.44829703326894,
+      "221": 207.51115232630917,
+      "222": 168.50385848364698
+    },
+    "extra_free_parameters": 6,
+    "optimizer_seeds": [
+      221,
+      222
+    ],
+    "validation_seeds": [
+      231,
+      232
+    ]
+  },
+  "spatial": {
+    "winner": "shared",
+    "validation_costs": {
+      "shared": 262.81166599555013,
+      "historical": 270.24932183030796,
+      "221": 353.87023228264957,
+      "222": 367.6603857404597
+    },
+    "extra_free_parameters": 0,
+    "optimizer_seeds": [
+      221,
+      222
+    ],
+    "validation_seeds": [
+      231,
+      232
+    ]
+  },
+  "model_selection_status": "frozen_before_test",
+  "selected_hash": "bf8935a02d4f966b684cef0c08dbaeb5b6078feccf4e11bd24604c80da969a41",
+  "runs_hash": "0a2b8d9ca91050ffa5fcf84ad72f120f7d17641529599db7904ca03e13b95228",
+  "final_seeds": [
+    401,
+    402
+  ],
+  "final_n_per_cell_per_seed": 1000,
+  "final_minimum_retained_per_cell": 2000,
+  "mechanism": "Wald-once; noise-free/proximity saccades; bounded guidance quit weights; drain adaptive decisions",
+  "preprocessing": "human/protocol.json",
+  "scoring": "human/protocol.json",
+  "test_results_used_for_selection": false
+}

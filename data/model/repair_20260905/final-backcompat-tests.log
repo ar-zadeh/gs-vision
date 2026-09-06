@@ -1,0 +1,1225 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.4, pytest-9.1.1, pluggy-1.6.0 -- G:\VisualSearchModeling\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: G:\VisualSearchModeling
+collecting ... collected 15 items
+
+tests/test_backcompat.py::test_trace_is_not_empty[legacy-check] ERROR    [  6%]
+tests/test_backcompat.py::test_trace_is_not_empty[unit2-demo2] ERROR     [ 13%]
+tests/test_backcompat.py::test_trace_is_not_empty[unit2-assignment] ERROR [ 20%]
+tests/test_backcompat.py::test_trace_is_not_empty[unit3-subitize] ERROR  [ 26%]
+tests/test_backcompat.py::test_trace_is_not_empty[unit3-perceptual-motor] ERROR [ 33%]
+tests/test_backcompat.py::test_gs_enabled_matches_stock[legacy-check] ERROR [ 40%]
+tests/test_backcompat.py::test_gs_enabled_matches_stock[unit2-demo2] ERROR [ 46%]
+tests/test_backcompat.py::test_gs_enabled_matches_stock[unit2-assignment] ERROR [ 53%]
+tests/test_backcompat.py::test_gs_enabled_matches_stock[unit3-subitize] ERROR [ 60%]
+tests/test_backcompat.py::test_gs_enabled_matches_stock[unit3-perceptual-motor] ERROR [ 66%]
+tests/test_backcompat.py::test_gs_disabled_matches_stock[legacy-check] ERROR [ 73%]
+tests/test_backcompat.py::test_gs_disabled_matches_stock[unit2-demo2] ERROR [ 80%]
+tests/test_backcompat.py::test_gs_disabled_matches_stock[unit2-assignment] ERROR [ 86%]
+tests/test_backcompat.py::test_gs_disabled_matches_stock[unit3-subitize] ERROR [ 93%]
+tests/test_backcompat.py::test_gs_disabled_matches_stock[unit3-perceptual-motor] ERROR [100%]
+
+=================================== ERRORS ====================================
+___________ ERROR at setup of test_trace_is_not_empty[legacy-check] ___________
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+___________ ERROR at setup of test_trace_is_not_empty[unit2-demo2] ____________
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+_________ ERROR at setup of test_trace_is_not_empty[unit2-assignment] _________
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+__________ ERROR at setup of test_trace_is_not_empty[unit3-subitize] __________
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+______ ERROR at setup of test_trace_is_not_empty[unit3-perceptual-motor] ______
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+________ ERROR at setup of test_gs_enabled_matches_stock[legacy-check] ________
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+________ ERROR at setup of test_gs_enabled_matches_stock[unit2-demo2] _________
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+______ ERROR at setup of test_gs_enabled_matches_stock[unit2-assignment] ______
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+_______ ERROR at setup of test_gs_enabled_matches_stock[unit3-subitize] _______
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+___ ERROR at setup of test_gs_enabled_matches_stock[unit3-perceptual-motor] ___
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+_______ ERROR at setup of test_gs_disabled_matches_stock[legacy-check] ________
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+________ ERROR at setup of test_gs_disabled_matches_stock[unit2-demo2] ________
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+_____ ERROR at setup of test_gs_disabled_matches_stock[unit2-assignment] ______
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+______ ERROR at setup of test_gs_disabled_matches_stock[unit3-subitize] _______
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+__ ERROR at setup of test_gs_disabled_matches_stock[unit3-perceptual-motor] ___
+
+    @pytest.fixture(scope="module")
+    def traces():
+        """Run every model in every mode once and cache the traces."""
+        out = {}
+        for name, spec in CASES.items():
+>           out[name] = {mode: _trace(spec["model"], spec["run"], mode)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         for mode in ("stock", "on", "off")}
+
+tests\test_backcompat.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+model = 'G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp'
+run_for = 3.0, mode = 'off'
+
+    def _trace(model: str, run_for: float, mode: str) -> list:
+        with tempfile.NamedTemporaryFile("w", suffix=".lisp", delete=False,
+                                         dir=tempfile.gettempdir()) as f:
+            f.write(_script(model, run_for, mode))
+            path = f.name
+        try:
+            out = subprocess.run(
+                ["sbcl", "--dynamic-space-size", "4096", "--non-interactive",
+                 "--load", path],
+                capture_output=True, text=True, timeout=1800, cwd=str(ROOT),
+            ).stdout
+        finally:
+            pathlib.Path(path).unlink(missing_ok=True)
+        if "===TRACE-START===" not in out:
+>           raise RuntimeError(f"{mode} run of {model} produced no trace:\n{out[-3000:]}")
+E           RuntimeError: off run of G:/VisualSearchModeling/actr7.x/tutorial/unit2/demo2-model.lisp produced no trace:
+E           me :VISUAL-ENCODING-EXPONENT in call to get-parameter-value. |#
+E           #|Warning: Invalid parameter name :VIS-OBJ-FREQ in call to get-parameter-value. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new component when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: Cannot create a new module when there are models defined. |#
+E           #|Warning: default-value does not pass the valid-test |#
+E           
+E           ##################################
+E           ACT-R 7 Version Information:
+E           Software          : 7.31.4-<3489:2026-06-10> 
+E           =================================================
+E           Components
+E           -------------------------------------------------
+E           AGI             : 6.0        Manager for the AGI windows
+E           CHUNK-SPEC      : 3.0        Maintains a table of chunk-specs for remote use
+E           HISTORY-RECORDER: 2.0        Maintain the tables of defined history recorders and state of non-model based history streams.
+E           NAMING          : 2.0        Provides new symbol generation for the system.
+E           =================================================
+E           Modules
+E           -------------------------------------------------
+E           AUDIO             : 9          A module which gives the model an auditory attentional system
+E           BUFFER-PARAMS     : 1.0        Module to hold and control the buffer parameters
+E           CENTRAL-PARAMETERS: 2.0        a module that maintains parameters used by other modules
+E           DECLARATIVE       : 8.1        The declarative memory module stores chunks from the buffers for retrieval
+E           DEVICE            : 7.3        The device interface for a model
+E           GOAL              : 3.0        The goal module creates new goals for the goal buffer
+E           HISTORY-RECORDER  : 2.2        Module to support the saving and accessing of information as a model runs.
+E           IMAGINAL          : 6.0        The imaginal module provides a goal style buffer with a delay and an action buffer for manipulating the imaginal chunk
+E           MOTOR             : 8.0        Module to provide a model with virtual hands
+E           NAMING-MODULE     : 3.0        Provides safe and repeatable new name generation for models.
+E           PRINTING-MODULE   : 2.1        Coordinates output of the model.
+E           PROCEDURAL        : 8.3        The procedural module handles production definition and execution
+E           RANDOM-MODULE     : 2.0        Provide a good and consistent source of pseudorandom numbers for all systems
+E           SPEECH            : 7.2        A module to provide a model with the ability to speak
+E           VISION            : 11.1       A module to provide a model with a visual attention system
+E           
+E           ######### Loading of ACT-R 7 is complete #########
+E           #|Warning: Cannot require an extra when there is a current model. |#
+E           #|Warning: gs-vision cannot replace the vision module while models exist. Load gs-vision before any clear-all or define-model. |#
+E           
+E           ######### gs-vision loaded: :vision is now 11.1 #########
+
+tests\test_backcompat.py:125: RuntimeError
+=========================== short test summary info ===========================
+ERROR tests/test_backcompat.py::test_trace_is_not_empty[legacy-check] - Runti...
+ERROR tests/test_backcompat.py::test_trace_is_not_empty[unit2-demo2] - Runtim...
+ERROR tests/test_backcompat.py::test_trace_is_not_empty[unit2-assignment] - R...
+ERROR tests/test_backcompat.py::test_trace_is_not_empty[unit3-subitize] - Run...
+ERROR tests/test_backcompat.py::test_trace_is_not_empty[unit3-perceptual-motor]
+ERROR tests/test_backcompat.py::test_gs_enabled_matches_stock[legacy-check]
+ERROR tests/test_backcompat.py::test_gs_enabled_matches_stock[unit2-demo2] - ...
+ERROR tests/test_backcompat.py::test_gs_enabled_matches_stock[unit2-assignment]
+ERROR tests/test_backcompat.py::test_gs_enabled_matches_stock[unit3-subitize]
+ERROR tests/test_backcompat.py::test_gs_enabled_matches_stock[unit3-perceptual-motor]
+ERROR tests/test_backcompat.py::test_gs_disabled_matches_stock[legacy-check]
+ERROR tests/test_backcompat.py::test_gs_disabled_matches_stock[unit2-demo2]
+ERROR tests/test_backcompat.py::test_gs_disabled_matches_stock[unit2-assignment]
+ERROR tests/test_backcompat.py::test_gs_disabled_matches_stock[unit3-subitize]
+ERROR tests/test_backcompat.py::test_gs_disabled_matches_stock[unit3-perceptual-motor]
+======================== 15 errors in 64.94s (0:01:04) ========================

@@ -1,0 +1,165 @@
+COMMAND: .venv/Scripts/python.exe harness/human_data.py --help
+usage: human_data.py [-h] [--raw RAW] [--out OUT]
+                     [--summarize {train,validation,test} [{train,validation,test} ...]]
+
+Validated Wolfe trial import and participant-weighted evaluation protocol. The
+archival table retains every source row, including errors and invalid RTs.
+Only explicitly requested splits are summarized; the CLI defaults to
+development splits so importing data does not expose test performance during
+model selection.
+
+options:
+  -h, --help            show this help message and exit
+  --raw RAW
+  --out OUT
+  --summarize {train,validation,test} [{train,validation,test} ...]
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/run_batch.py --help
+usage: run_batch.py [-h] [--tasks [TASKS ...]] [--set-sizes [SET_SIZES ...]]
+                    [-n N_PER_CELL] [--seeds [SEEDS ...]] [--tag TAG]
+                    [--params PARAMS] [--params-key PARAMS_KEY] [--out OUT]
+                    [--verbose] [--prevalence PREVALENCE] [--priming]
+                    [--practice PRACTICE]
+
+options:
+  -h, --help            show this help message and exit
+  --tasks [TASKS ...]
+  --set-sizes [SET_SIZES ...]
+  -n N_PER_CELL, --n-per-cell N_PER_CELL
+  --seeds [SEEDS ...]
+  --tag TAG
+  --params PARAMS       fit.json written by fit.py
+  --params-key PARAMS_KEY
+  --out OUT
+  --verbose             show the Lisp output
+  --prevalence PREVALENCE
+                        proportion of target-present trials (phase 6)
+  --priming             alternate the feature target colour in runs (phase 6)
+  --practice PRACTICE   synthetic practice trials per block; recorded
+                        separately
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/fit.py --help
+usage: fit.py [-h] [--phase1] [--shared] [--de] [--tasks [TASKS ...]]
+              [-n N_PER_CELL] [--iters ITERS] [--seed SEED] [--human HUMAN]
+              [--popsize POPSIZE] [--synthetic-smoke] [-o OUT]
+
+options:
+  -h, --help            show this help message and exit
+  --phase1
+  --shared              fit one parameter set across all three tasks
+  --de
+  --tasks [TASKS ...]
+  -n N_PER_CELL, --n-per-cell N_PER_CELL
+  --iters ITERS
+  --seed SEED
+  --human HUMAN         validated human_data.py output directory
+  --popsize POPSIZE
+  --synthetic-smoke     explicit historical synthetic smoke test
+  -o OUT, --out OUT
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/repair.py --help
+usage: repair.py [-h] [--out OUT] [--human HUMAN] [-n N]
+                 [--iterations ITERATIONS]
+                 {development,final,ablations}
+
+Reproduce development fits, freeze selection, and run ACT-R validation.
+Commands use the repository venv. Test summaries are first accessed by
+report.py with --final-test after this driver freezes model selection.
+
+positional arguments:
+  {development,final,ablations}
+
+options:
+  -h, --help            show this help message and exit
+  --out OUT
+  --human HUMAN
+  -n N                  trials per cell per seed; defaults 30 development /
+                        1000 final
+  --iterations ITERATIONS
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/report.py --help
+usage: report.py [-h] [--manifest MANIFEST] [--out OUT]
+                 [--destination DESTINATION] [--final-test] [--historical]
+
+Regenerate validation from explicit manifests without replacing narrative
+
+options:
+  -h, --help            show this help message and exit
+  --manifest MANIFEST
+  --out OUT
+  --destination DESTINATION
+  --final-test          requires a frozen model-selection manifest
+  --historical          print historical provisional tables, explicitly
+                        labeled
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/sensitivity.py --help
+usage: sensitivity.py [-h] [--root ROOT]
+
+Local development-participant sensitivity at frozen shared settings.
+
+options:
+  -h, --help   show this help message and exit
+  --root ROOT
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/experiments.py --help
+usage: experiments.py [-h] [--params PARAMS] [--out OUT] [-n N]
+
+Controlled mechanism, capture, priming, and prevalence experiments. All
+results here are simulation experiments. Capture uses an orientation-target
+analogue of Adam et al., and the unknown-color priming protocol is a model
+hypothesis. Neither is labeled an exact human experiment replication.
+
+options:
+  -h, --help       show this help message and exit
+  --params PARAMS
+  --out OUT
+  -n N
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/study_batch.py --help
+usage: study_batch.py [-h] [--root ROOT]
+
+ACT-R confirmation of the frozen fit's secondary manipulations. These runs
+have independent seeds and the shared block/practice protocol. They are kept
+separate from the mirror's long uninterrupted prevalence blocks.
+
+options:
+  -h, --help   show this help message and exit
+  --root ROOT
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/eye_audit.py --help
+usage: eye_audit.py [-h] [--source SOURCE] [--out OUT]
+
+Audit exported Wu/Wolfe foraging fixations without relabeling them as keypress
+search. Run MATLAB's harness/export_eye_data.m first. The table comes from the
+Results folder of OSF component qwm6r; RealData.csv is the separate 42/80-item
+search task.
+
+options:
+  -h, --help       show this help message and exit
+  --source SOURCE
+  --out OUT
+EXIT: 0
+
+COMMAND: .venv/Scripts/python.exe harness/archive_validation.py --help
+usage: archive_validation.py [-h] [--root ROOT] [--out OUT]
+
+Assemble reviewable summaries from explicit, completed repair artifacts. No
+simulation or parameter selection occurs here. Missing required inputs fail.
+Full trial data remain in the run directory; the destination contains
+summaries, plots, configurations, hashes, and the command record.
+
+options:
+  -h, --help   show this help message and exit
+  --root ROOT
+  --out OUT
+EXIT: 0
+
+10 CLI help checks passed

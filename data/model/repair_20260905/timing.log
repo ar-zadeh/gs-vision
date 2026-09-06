@@ -1,0 +1,11 @@
+
+parameters: {':gs-guiding-features': ['color', 'orient', 'size', 'lum'], ':gs-select-interval': 0.05, ':gs-diffuser-capacity': 5, ':gs-choice-beta': 4.0, ':gs-saccade-margin': 0.25, ':gs-saccade-proximity': 0.1, ':gs-revised-saccades': True, ':gs-quit-noise-free': True, ':gs-recognition-extra': False, ':gs-id-drift': 0.25, ':gs-id-threshold': 0.03, ':gs-quit-delta': 0.02, ':gs-memory': 4, ':gs-attn-fvf': 8.0, ':gs-explore-fvf': 12.0, ':gs-max-fixation': 0.4, ':gs-iconic-span': 4.0, ':gs-acuity-theta': ['color', 0.1, 'orient', 0.2, 'shape', 0.4, 'size', 0.2, 'lum', 0.1], ':gs-acuity-sigma': 0.5, ':gs-w-bu': 0.5, ':gs-w-td': 1.0, ':gs-w-h': 0.3, ':gs-w-v': 0.0, ':gs-w-s': 1.0, ':gs-w-e': 0.02, ':gs-noise': 0.2, ':gs-priming-tau': 10.0, ':gs-qt-init': 1.0, ':gs-qt-step': 0.05, ':gs-error-goal': 0.08, ':gs-feedback-window': 50, ':emma': True, ':saccade-feat-time': 0.05, ':saccade-init-time': 0.05, ':saccade-base-time': 0.02, ':eye-saccade-rate': 0.002, ':visual-encoding-factor': 0.006, ':visual-encoding-exponent': 0.4, ':vis-obj-freq': 0.1, ':visual-attention-latency': 0.085}
+ACT-R connection has been started.
+timing seed101:   0%|          | 0/120 [00:00<?, ?it/s]
+timing seed101:  21%|##        | 25/120 [00:00<00:00, 249.43it/s]
+timing seed101:  48%|####7     | 57/120 [00:00<00:00, 285.90it/s]
+timing seed101:  72%|#######1  | 86/120 [00:00<00:00, 277.92it/s]
+timing seed101:  98%|#########7| 117/120 [00:00<00:00, 287.97it/s]
+timing seed101: 100%|##########| 120/120 [00:00<00:00, 284.62it/s]
+seed 101: 120 trials, 120 responded -> timing_seed101_trials.csv, timing_seed101_fixations.csv
+ACT-R connection error connection no longer available.

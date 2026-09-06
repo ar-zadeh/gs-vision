@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "split_seed": 20260905,
+  "bootstrap_seed": 50260905,
+  "rt_lower_ms_inclusive": 200,
+  "rt_upper_ms_inclusive": {
+    "feature": 4000,
+    "conjunction": 4000,
+    "spatial": 8000
+  },
+  "accuracy": "all validated behavioral rows, independent of RT trimming",
+  "primary": "equal participant weight; correct RTs; average participant quantiles",
+  "sensitivity": "correct positive RTs without upper truncation",
+  "source": "https://search.bwh.harvard.edu/new/data_set_files.html",
+  "identity": "task:source_file:subject_id; source_row is physical line including header",
+  "practice": "source rows retained; trial-number resets are not practice exclusions",
+  "objective": "mean cell quantile RMSE ms + 1000 * absolute error rate difference; 2000 ms for empty correct cells; 2000 * timeout fraction"
+}
