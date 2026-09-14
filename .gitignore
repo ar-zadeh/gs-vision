@@ -7,4 +7,5 @@ data/model/
 *.fasl
 __pycache__/
 *.pyc
+*.docx
 reference/vendor/
