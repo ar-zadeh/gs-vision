@@ -1,33 +1,48 @@
 ---
-title: "Bringing Guided Search into ACT-R: A tutorial on the gs-vision module and its validation against benchmark visual search data"
+title: "A Guided Search vision module for ACT-R: Implementation, tutorial, and validation against benchmark visual search data"
+subtitle: "Article type: Tutorial"
 author:
   - "Amirreza Bagherzadeh^1^ and Frank E. Ritter^2^"
   - "^1^ Independent researcher"
   - "^2^ College of Information Sciences and Technology, The Pennsylvania State University, University Park, PA, USA"
-date: "Manuscript prepared for the Behavior Research Methods Tutorial Collection. Corresponding author: Frank E. Ritter, College of Information Sciences and Technology, The Pennsylvania State University, University Park, PA 16802, USA. Email: Frank.ritter@psu.edu. The manuscript was last edited on September 6, 2026."
+date: "Tutorial manuscript prepared for Behavior Research Methods. Correspondence: Frank E. Ritter, College of Information Sciences and Technology, The Pennsylvania State University, University Park, PA 16802, USA. Email: Frank.ritter@psu.edu"
 ---
 
 # Abstract
 
-ACT-R's vision module has been the architecture's account of visual perception for more than two decades, and its mechanisms for locating and attending objects have not changed in that time. It has no acuity, no salience, no guidance, no eye position, and no way to stop a search that has found nothing; a production loop that searches with it runs three to ten times slower per item than a human observer. This tutorial presents gs-vision, a replacement vision module for ACT-R 7.31 that implements Guided Search 6 (priority map, capacity-limited asynchronous identification, memory for rejected items, adaptive quitting), the quantitative engine of Competitive Guided Search, per-feature acuity and iconic memory in the tradition of PAAV and EPIC, and EMMA eye movements, as a subclass that leaves every existing model running unchanged. We explain the theory, walk through the buffer interface with a complete search model, and show how to drive, log, and fit the module from Python. We then validate it on the reaction-time distributions and error rates of the three Wolfe, Palmer, and Horowitz (2010) benchmark tasks with held-out participants, and compare it with the stock module, PAAV, a Guided Search 6 variant, and six trial-level models fitted with the same objective. gs-vision is the most accurate model of visual search that runs in ACT-R and has eyes, and it is within participant noise of the best trial-level models. Its miss rates and saccade amplitudes remain wrong in documented ways. All code and run records are available.
+Cognitive models that interact with visual displays depend on ACT-R's vision module to locate and encode objects. However, the stock module's core search mechanisms have remained largely unchanged for more than two decades and do not represent visual acuity, feature-guided selection, eye position, or an adaptive decision to terminate an unsuccessful search. This paper's primary contribution is gs-vision, an extension of the ACT-R 7.31 vision module that integrates a Guided Search 6 priority map, Competitive Guided Search selection and identification, memory for rejected items, adaptive quitting, per-feature acuity, iconic memory, and EMMA eye movements. The tutorial explains the module's theoretical basis and provides a step-by-step guide to loading it, describing displays, issuing searches, collecting diagnostics, and fitting parameters from Python. We validate the module against reaction-time distributions and error rates from three benchmark visual-search tasks and compare it with stock ACT-R vision, PAAV, an ACT-R variant based on the posted Guided Search 6 engine, and six trial-level models fitted under the same evaluation protocol. On held-out participants, the exploratory gs-vision refit obtained a mean cell quantile RMSE of 100.1 ms, compared with 122.5 ms for the next-best ACT-R vision module and 80.5 ms for the best trial-level model. Thus, gs-vision provides the most accurate ACT-R vision-module account in this benchmark, but it is not the best model of every outcome: its miss rates and saccade amplitudes remain important limitations. The module, validation code, and run records are publicly available.
 
 *Keywords:* ACT-R, visual search, Guided Search, cognitive architecture, eye movements, model validation, reaction time distributions
 
 # Introduction
 
-Cognitive architectures let a modeler predict the time course of a whole task, perception included, from a small set of fixed mechanisms (Anderson, 2007; Anderson et al., 2004). ACT-R is the most widely used such architecture in psychology and human–computer interaction, and its perceptual-motor layer has been an important reason for that reach: a model can read a screen, move its eyes, and press keys with latencies that were calibrated against human data (Byrne, 2001; Salvucci, 2001). Yet the part of that layer that decides *where the model looks next* has changed little since ACT-R/PM. A `visual-location` request filters the model's list of objects by symbolic slot values, returns one match at no cost, and breaks ties at random. A `move-attention` request then encodes the object in a fixed 85 ms. There is no eccentricity, no acuity, no salience, no guidance by target features, no cost for distance, and no principled way to stop a search that finds nothing. The module can be *used* to search, by writing a production loop that finds, attends, and tests one object at a time, but each iteration costs at least 135 ms and typically 185 to 235 ms (Fleetwood & Byrne, 2006), where human observers inspect items in a conjunction search at 10 to 50 ms per item and finish a feature search without inspecting anything.
+Cognitive architectures are computational theories that describe how perceptual, cognitive, and motor mechanisms work together to produce behavior (Anderson, 2007; Anderson et al., 2004; Newell, 1990). ACT-R is particularly useful for human–computer interaction because its models can inspect a display, move attention and the eyes, retrieve knowledge, and produce motor responses with explicit predictions about time and error (Byrne, 2001; Salvucci, 2001). These capabilities have enabled ACT-R models to explain behavior in menus, complex displays, and other interactive tasks. However, the quality of those predictions depends on how the architecture represents the search for task-relevant information.
 
-Visual search research went a different way in the same period. Guided Search (Wolfe, 1994, 2021) became the dominant framework, and its sixth version specifies a priority map fed by five sources of guidance, a selection rate of about one item every 50 ms into a capacity-limited "carwash" of about five items being identified at once, memory for four to six rejected items, three functional visual fields that separate what can be resolved, what can be attended, and where the eyes go, and an adaptive quitting rule. Competitive Guided Search (CGS; Moran et al., 2013) gave that architecture a quantitative engine with eight parameters that reproduces the full reaction-time (RT) distributions and error rates of the standard benchmark (Wolfe et al., 2010) better than a parallel race (Moran et al., 2016). Fixation-based accounts (Hulleman & Olivers, 2017) and active-vision architectures (Kieras & Meyer, 1997; Kieras & Hornof, 2014) showed how acuity and eye movements, not only covert attention, shape search slopes. None of this exists inside ACT-R 7. The one serious attempt to import it, the Pre-Attentive And Attentive Vision module (PAAV; Nyamsuren & Taatgen, 2013), was written for ACT-R 6, fixes one item per fixation, has no adaptive quitting, and was never evaluated against RT distributions or error rates. Later proposals (Byrne, 2006; Wiese et al., 2019) added salience to location requests but were not validated on search data.
+The stock ACT-R vision module provides a reliable symbolic interface between a model and a display. A model can request an object with a specified color, value, or location, shift attention to the selected location, and encode the object. The module was not designed, however, as a current theory of visual search. Its core search operations do not include eccentricity-dependent acuity, salience-based competition, graded guidance by target features, a representation of eye position in selection, or an adaptive rule for deciding that a target is absent. Modelers can create a production loop that locates, attends to, and tests one object at a time, but each iteration includes production and encoding costs that are substantially slower than human item-processing rates in many visual-search tasks (Fleetwood & Byrne, 2006; Wolfe et al., 2010).
 
-The gap matters beyond visual search. Any ACT-R model that reads a display, whether it is a menu, a cockpit, an air-traffic scope, or a web page, needs a search process, and today's modelers either write a production loop whose timing is known to be wrong or approximate the search with a single `:nearest` request. A vision module that searched the way people do would improve the perceptual predictions of every such model without changing anything else in the architecture.
+Research on visual search has developed several mechanisms that can address this gap. Guided Search describes selection through a priority map that combines bottom-up salience, top-down target guidance, selection history, value, and scene structure (Wolfe, 1994, 2021). Guided Search 6 further includes capacity-limited identification, memory for rejected items, functional visual fields, and adaptive quitting. Competitive Guided Search (CGS; Moran et al., 2013) provides a quantitative account of selection, identification, and quitting that reproduces benchmark RT distributions and error rates. Related fixation-based and active-vision accounts show that acuity and eye movements also shape search efficiency (Hulleman & Olivers, 2017; Kieras & Hornof, 2014; Kieras & Meyer, 1997).
 
-This tutorial presents gs-vision, a module that fills that gap for ACT-R 7.31, and follows the format of earlier ACT-R primers in this journal (Dimov et al., 2020). It has four aims. First, to explain the theory the module implements and the design decisions that were needed to put a Guided Search architecture inside ACT-R's event-driven module system (the Module section). Second, to show, step by step, how a modeler uses it: loading, extended visicon features, the three buffer requests, feedback, diagnostics, and a complete model of a search experiment driven from Python (the Tutorial section). Third, to report a validation that is unusual for an architecture module: RT quantiles and error rates of the three Wolfe et al. (2010) benchmark tasks, with participants held out before fitting, next to the stock ACT-R module, PAAV, a variant that uses Wolfe's own posted Guided Search 6 engine, and six trial-level models from the literature fitted with the same objective (the Validation and Comparison sections). Fourth, to be candid about what the module does not yet get right, because a module that is going to be used deserves a documented list of its failures (the Discussion). Everything reported was run from scripts in the accompanying repository, and every table in the paper can be regenerated from its run records.
+Earlier work has brought parts of these ideas into ACT-R. The Pre-Attentive And Attentive Vision module (PAAV; Nyamsuren & Taatgen, 2013) added eccentricity-dependent acuity, iconic memory, a Guided Search activation map, and a rule for terminating search. Other proposals added salience-based selection to ACT-R location requests (Byrne, 2006; Wiese et al., 2019). These contributions demonstrated that ACT-R's visual interface can be extended, but they preceded ACT-R 7 or did not evaluate full RT distributions and error rates across searches with different efficiencies. The stock ACT-R 7 vision module therefore still lacks an integrated, quantitatively validated account of current visual-search mechanisms.
 
-# What ACT-R's vision module does today
+This limitation matters beyond laboratory visual search. An ACT-R model that interacts with a menu, cockpit, air-traffic display, spreadsheet, or web page must find information before it can use that information. When search time is represented as a fixed encoding delay or an unconstrained symbolic request, the model cannot predict how target–distractor similarity, eccentricity, set size, eye position, or target prevalence changes performance. A more complete vision module can connect display design to predicted search behavior while preserving the cognitive and motor mechanisms already represented in ACT-R.
 
-The stock vision module (ACT-R 7.31.4, `vision.lisp` version 11.1) maintains a *visicon*, a list of feature chunks that the experiment adds with `add-visicon-features`. A `visual-location` request specifies slot constraints such as `color red` or `:attended new`, optional ordinal constraints such as `screen-x lowest`, and a `:nearest` option; the module returns one matching chunk, breaking ties by recency of onset and then at random, in 0 ms. A `visual` request with `move-attention` shifts attention to that location and, after `:visual-attention-latency` (85 ms), places an object chunk in the `visual` buffer. Four *finsts* mark recently attended objects for three seconds, so that `:attended nil` can exclude them. Those are the search primitives, and Table 1 summarizes the consequences for a model that uses them in a loop of three productions (find, attend, test).
+In this paper, we address this limitation by presenting gs-vision, an extension of the ACT-R 7.31 vision module. The module combines Guided Search 6 as its organizing framework, CGS as its quantitative selection and identification engine, EPIC- and PAAV-style acuity and iconic memory, and EMMA eye movements. It retains the stock buffers and requests and adds a full-search request that runs the item-level search process within the module. The included compatibility tests verify unchanged traces for the ACT-R tutorial models used in the test suite when gs-vision is enabled or disabled.
 
-Table 1. *Per-item timing of the stock vision module in a find, attend, test production loop*
+This tutorial addresses three research questions:
+
+1. Can current visual-search mechanisms be integrated into ACT-R while preserving the stock vision interface for existing models?
+2. Does gs-vision simulate benchmark visual-search RT distributions more accurately than existing ACT-R vision modules under a common evaluation protocol?
+3. How can cognitive modelers use the module to represent search in laboratory and applied tasks, inspect its predictions, and fit it to behavioral data?
+
+The paper makes three contributions. First, it provides a working ACT-R vision module that connects feature guidance, acuity, eye movements, identification, memory, and quitting in one event-driven process. Second, it provides a practical workflow for loading the module, describing displays, issuing searches, logging model behavior, and fitting parameters. Third, it evaluates the module against held-out participants from three visual-search benchmarks and compares it with the stock ACT-R module, PAAV, an ACT-R Guided Search 6 variant, and six trial-level models under the same objective. The evaluation also reports where the module fails, because those limitations define the appropriate scope of its current use. All reported analyses and tables can be regenerated from the public repository.
+
+# Limitations of the stock ACT-R vision module
+
+The stock vision module (ACT-R 7.31.4, `vision.lisp` version 11.1; Bothell, n.d.) maintains a *visicon*, a list of feature chunks that the experiment adds with `add-visicon-features`. A `visual-location` request specifies slot constraints such as `color red` or `:attended new`, optional ordinal constraints such as `screen-x lowest`, and a `:nearest` option. The module returns one matching chunk in 0 ms, breaking ties by recency of onset and then at random. A `visual` request with `move-attention` shifts attention to that location and, after `:visual-attention-latency` (85 ms), places an object chunk in the `visual` buffer. Four *finsts* mark recently attended objects for three seconds, so that `:attended nil` can exclude them. These are the stock module's search primitives. Table 1 summarizes their timing in a model that uses three productions to find, attend to, and test each candidate object.
+
+**Table 1**
+
+*Per-item timing of the stock vision module in a find, attend, test production loop*
 
 | Component | Latency | Source |
 |---|---|---|
@@ -38,9 +53,9 @@ Table 1. *Per-item timing of the stock vision module in a find, attend, test pro
 | Human, conjunction search | 10–35 ms per item | Wolfe et al. (2010) |
 | Human, spatial-configuration search | 45–100 ms per item | Wolfe et al. (2010) |
 
-Three things follow. The loop is three to ten times too slow per item for guided or spatial search, and cannot produce a feature search that finishes without inspecting anything, unless the modeler adds a request such as `color red` that succeeds in 0 ms, which produces absent responses in about 210 ms, half the human value. The choice of the next item is random with respect to the target's features, so the module cannot express guidance. And there is no quitting rule: an absent trial ends when the model has run out of unattended objects, which with four finsts and more than four objects never happens without a counting strategy. The Comparison section quantifies these failures on the benchmark. EMMA (Salvucci, 2001), the eye-movement extension shipped with ACT-R, models *when and where the eyes go given a chosen location*, and gs-vision keeps it for exactly that; EMMA does not model which location is chosen.
+This production loop has three consequences. First, it is three to ten times slower per item than human guided or spatial search. A direct request such as `color red` can avoid this cost, but it then returns a matching object without simulating the search process and produces target-absent responses in approximately 210 ms, about half the human value in the benchmark. Second, when several objects satisfy the request, the stock module does not rank them by their similarity to the target. Third, the module has no search-specific quitting rule. With four finsts and more than four objects, an absent trial requires an additional counting or memory strategy to terminate reliably. The model comparison below quantifies these limitations. EMMA (Salvucci, 2001), the eye-movement extension distributed with ACT-R, represents when and where the eyes move after a location has been chosen; it does not determine which location wins the search competition.
 
-PAAV (Nyamsuren & Taatgen, 2013) replaced the location side with an `abstract-location` buffer served from an iconic memory with eccentricity-dependent acuity, a Guided Search 4 activation map, and a pruning rule that lets a model declare absence without fixating everything. It reproduced conjunction slopes of about 20 ms per item present and 54 to 73 ms per item absent, and fixation counts in a comparative-search task. Its limitations for the goal of human-like search are that it selects one item per fixation, so the item slope is tied to the saccade rate and cannot reach the 9 to 11 ms per item of Wolfe et al. (2010); that it has no adaptive quitting, so miss rates, prevalence effects and the absent-trial RT distribution are not modeled; that it requires ACT-R 6; and that it was never evaluated against RT distributions or error rates. gs-vision borrows PAAV's acuity and iconic-memory layer and its integration pattern, and replaces the rest. Because PAAV cannot be loaded into ACT-R 7, the Comparison section scores it through a mirror of its mechanisms transcribed from its source code.
+PAAV (Nyamsuren & Taatgen, 2013) replaced the location process with an `abstract-location` buffer served by iconic memory, eccentricity-dependent acuity, a Guided Search 4 activation map, and a pruning rule that lets a model report target absence without fixating every object. It reproduced conjunction slopes of approximately 20 ms per item for present trials and 54 to 73 ms per item for absent trials, as well as fixation counts in a comparative-search task. PAAV nevertheless selects one item per fixation, ties the item slope to the saccade rate, has no adaptive quitting mechanism for modeling prevalence and miss rates, and was developed for ACT-R 6. It was also not evaluated against full RT distributions and error rates. gs-vision builds on PAAV's acuity, iconic-memory layer, and integration pattern while replacing its selection, identification, and quitting processes. Because the original PAAV implementation does not load under ACT-R 7, the comparison uses a display-level mirror transcribed from its source code; we report this limitation with the corresponding results.
 
 # The gs-vision module
 
@@ -48,7 +63,7 @@ PAAV (Nyamsuren & Taatgen, 2013) replaced the location side with an `abstract-lo
 
 gs-vision implements Guided Search 6 (Wolfe, 2021) as the organizing architecture, Competitive Guided Search (Moran et al., 2013) as the arithmetic of selection, identification and quitting, EPIC-style acuity (Kieras & Meyer, 1997) with PAAV's iconic memory for what is visible from where the eye is, and EMMA (Salvucci, 2001) for saccades. Figure 1 shows the pieces and the one-trial flow between them. Table 2 lists the equations.
 
-![Figure 1. Architecture of gs-vision and the flow of one search. Productions (top) issue one request, receive one result, and report one outcome. Everything between runs on the module's own scheduled events. Gold arrows are the buffer interface; green and red arrows are the two possible outcomes of a search.](figs/fig_architecture.png)
+![Figure 1. Architecture of gs-vision and the flow of one search. ACT-R productions (top) issue a search request, receive a visual result or state error, and report trial feedback. The dashed gray boundary encloses the module's scheduled processes. Gray solid arrows connect module processes; blue solid arrows show the search request and successful result; rust dashed arrows show failure and state error; gray dotted arrows show trial feedback. Processes can overlap in time.](figs/fig_architecture.png)
 
 *Priority map.* Every item in iconic memory receives a priority that is a weighted sum of bottom-up salience (local contrast in categorical feature channels, divided by inter-item distance, as in Guided Search 2), top-down guidance (categorical channel match to the guiding template; features that are not yet visible contribute an uncertainty term), a history term (priming traces per feature value decaying over about ten seconds), an optional value term and an optional scene prior, minus inhibition of return for recently rejected items, plus logistic noise. Guidance is restricted to *guiding features* (by default color, orientation, size, and luminance); every other feature, and shape above all, is compared only once an item is inside the identification stage. That one rule is what makes feature search efficient and spatial-configuration search inefficient with a single set of mechanisms.
 
@@ -58,7 +73,9 @@ gs-vision implements Guided Search 6 (Wolfe, 2021) as the organizing architectur
 
 *Eyes.* A saccade is triggered when an item outside the attentional field carries guidance that exceeds the best item inside it by a margin, or when nothing selectable remains inside it; the destination is chosen from the exploratory field (12 degrees) by guidance minus a distance penalty. Preparation, execution (20 ms plus 2 ms per degree), and landing noise follow EMMA. On landing, acuity is re-evaluated: each feature of each item is available with a probability given by the EPIC rule, item size compared with a threshold that grows linearly with eccentricity and has a per-feature slope, and available features are written into an iconic memory that persists for four seconds.
 
-Table 2. *Core equations of gs-vision*
+**Table 2**
+
+*Core equations of gs-vision*
 
 | Mechanism | Equation | Origin |
 |---|---|---|
@@ -76,7 +93,7 @@ Four decisions were necessary to put this architecture into ACT-R, and each is a
 
 *The item-level loop runs inside the module.* Productions fire every 50 ms, which coincidentally matches Guided Search's selection rate but not its identification or fixation rates, and production overhead plus the 85 ms shift makes production-driven item search several times too slow. The declarative module set the precedent: retrieval is sub-symbolic and internal, and productions only request and receive. gs-vision does the same for search. A production sets the template; the module runs selection, identification, saccades and quitting on its own scheduled events; the target object arrives in the `visual` buffer, or the buffer is left empty with `state error`, exactly like a retrieval failure.
 
-*It is a subclass, not a fork.* The module class inherits from `vision-module`. The `:vision` module is undefined and redefined with the same buffer names and every stock parameter, which is rebuilt from the live parameter table rather than copied out of `vision.lisp`. Ordinary requests are delegated to the stock methods. Consequently the motor module, the AGI devices, the Environment, and EMMA keep working, and every existing model runs unchanged: the backward-compatibility test runs the ACT-R tutorial unit 2 and unit 3 models under the stock module and under gs-vision, enabled and disabled, and requires identical traces line for line.
+*It is a subclass, not a fork.* The module class inherits from `vision-module`. The `:vision` module is undefined and redefined with the same buffer names and every stock parameter, which is rebuilt from the live parameter table rather than copied from `vision.lisp`. Ordinary requests are delegated to the stock methods. This design preserves the connections to the motor module, AGI devices, the Environment, and EMMA. The included backward-compatibility test runs the ACT-R tutorial unit 2 and unit 3 models under the stock module and under gs-vision, both enabled and disabled, and requires identical traces line by line. This test provides evidence for compatibility with the tested interface; it does not establish compatibility with every ACT-R model.
 
 *The response stage is measured, not fitted.* The model presses a key with ACT-R's motor module. The keyboard response stage was measured from the module (160 ms for a repeated key, 260 ms for a switch, 310 ms for the first response of a block) and held fixed in every fit. The trial-level models in the Comparison section fit their own non-decision times; gs-vision never did.
 
@@ -84,9 +101,11 @@ Four decisions were necessary to put this architecture into ACT-R, and each is a
 
 ## Implementation
 
-The module is 2,000 lines of Common Lisp in five files (Table 3), loaded by `load-gs-vision.lisp` after ACT-R and EMMA and before any model exists. A Python mirror (`reference/gs_hybrid.py`) implements the same mechanisms with independent random streams; it is used for parameter fitting, because a 24,000-trial run takes about 75 s in either implementation but the mirror can run in parallel processes, and it is checked against the Lisp module on identical displays after every change (Lisp/mirror parity is reported with the validation). A Python harness drives ACT-R over its remote interface, generates displays, records event times, fits parameters, and evaluates runs against human data.
+The module contains approximately 2,000 lines of Common Lisp in five files (Table 3). A modeler loads `load-gs-vision.lisp` after ACT-R and EMMA and before defining a model. A Python mirror (`reference/gs_hybrid.py`) implements the same mechanisms with independent random streams. We use this mirror for parameter fitting because it can run in parallel processes, and we compare it with the Lisp module on identical displays after implementation changes. The validation section reports this Lisp–mirror agreement. A Python harness drives ACT-R through its remote interface, generates displays, records event times, fits parameters, and evaluates runs against human data.
 
-Table 3. *Files of the module and the harness*
+**Table 3**
+
+*Files of the module and the harness*
 
 | File | Contents |
 |---|---|
@@ -102,14 +121,14 @@ Table 3. *Files of the module and the harness*
 
 # Tutorial: using gs-vision in a model
 
-This section builds the model that produced every ACT-R result in the paper. Readers who want to run it should install ACT-R 7.31.4 (the repository vendors it), Steel Bank Common Lisp, and the Python environment from `requirements.txt`.
+This section shows how to add gs-vision to a cognitive model and use it in an experiment. The example is the same model used for the ACT-R results reported below. To reproduce it, install ACT-R 7.31.4, Steel Bank Common Lisp, and the Python dependencies listed in `requirements.txt`. The repository does not distribute ACT-R itself; the setup instructions identify the required version and download location.
 
 ## Step 1: Load the module
 
 The module must be installed before any model is defined, because a module cannot be undefined once a model exists.
 
-```lisp
-sbcl --load G:/VisualSearchModeling/gs-vision/load-gs-vision.lisp
+```console
+sbcl --load gs-vision/load-gs-vision.lisp
 ```
 
 Inside a model, two parameters turn the pieces on. With `:gs-enabled nil` the new requests are refused and the module behaves as the stock one, which is useful for ablations.
@@ -226,7 +245,9 @@ The module's search parameters are set with `sgp` and mirrored one-to-one in the
 
 Table 4 lists the parameters a modeler is most likely to touch. The complete list, with the stock vision parameters that continue to work, is in the module's README.
 
-Table 4. *Principal gs-vision parameters*
+**Table 4**
+
+*Principal gs-vision parameters*
 
 | Parameter | Default | Role |
 |---|---|---|
@@ -264,7 +285,9 @@ The report of every run states three summary numbers: mean cell quantile RMSE (m
 
 The primary fit shares all settings across the three tasks; the module therefore has to derive the differences between tasks from the displays and the templates alone. Six parameters were fitted (identification threshold, inhibition-of-return memory, selection interval, bottom-up weight, attentional field, competitive quit increment) with a small differential-evolution search (four generations of 18, 72 evaluations). Table 5 gives the frozen results on all three splits, together with the module at its defaults and with the exploratory refit described next.
 
-Table 5. *gs-vision runs in ACT-R against the human splits (2,000 retained trials per cell, no timeouts)*
+**Table 5**
+
+*gs-vision runs in ACT-R against the human splits (2,000 retained trials per cell, no timeouts)*
 
 | Run | Fitted parameters | Split | Mean RT RMSE (ms) | Quantile RMSE (ms) | Slopes within 5 ms/item | Largest miss error (points) |
 |---|---|---|---|---|---|---|
@@ -292,7 +315,9 @@ The refit improves the test fit from 127.7 to 100.1 ms, passes four of six slope
 
 Fixed-parameter ablations at the frozen settings (seeds 321 and 322, 1,200 trials per cell) isolate what the eye and quitting policies contribute (Table 6). Restoring a second full encoding after identification, the behavior of the stock module, adds 43 to 49 ms to present trials. Reverting the saccade policy to guidance-only destinations with no margin and no distance penalty raises the spatial fixation count from 6.1 to 12.9 per trial and spatial absent RT from 2.5 to 4.4 s, and produces the only timeouts seen in the project. Raising the bottom-up weight from 0.5 to 3.0, which improves the capture effect reported below, raises conjunction absent RT from 1.1 to 2.8 s and the fixation count from 2.5 to 6.4, which is why the default was not promoted.
 
-Table 6. *Ablations at the frozen settings (mirror; conjunction and spatial absent trials)*
+**Table 6**
+
+*Ablations at the frozen settings (mirror; conjunction and spatial absent trials)*
 
 | Configuration | Conjunction absent RT (ms) | Spatial absent RT (ms) | Spatial fixations per trial |
 |---|---|---|---|
@@ -311,7 +336,9 @@ The benchmark has no eye data, so the module's fixations were compared with the 
 
 Three effects that a Guided Search model should produce were tested at the frozen settings (Table 7). *Attentional capture* by an irrelevant salient singleton (the additional-singleton paradigm; Adam et al., 2021) costs the model 7.6 ms in ACT-R at the default bottom-up weight and 23 ms at a weight of 3, against 39 ms in the human data; the model's analogue uses an orientation target where the human study used a shape target, so this is a calibration, not a replication. *Priming of pop-out* (Maljkovic & Nakayama, 1994) is not established: repeat-minus-switch differences are within a few milliseconds at the frozen priming weight, and removing the history term changes them by 22 ms in the wrong direction because the history term also carries distractor priming. *Prevalence* (Wolfe et al., 2005) fails: at 10 percent target prevalence the model's misses rise by only 1.5 points and its absent responses *slow* by 87 ms, where human observers miss far more often and respond "absent" faster. This is a property of the posted Guided Search 6 feedback rules, which the module reproduces faithfully: with a true-negative step proportional to prevalence and a miss step inversely proportional to it, the controller's equilibrium miss rate is twice the error goal times the prevalence, which falls as prevalence falls. The same failure appears in a line-by-line Python port of Wolfe's MATLAB.
 
-Table 7. *Secondary manipulations at the frozen settings (ACT-R runs; 95% intervals over simulation seeds)*
+**Table 7**
+
+*Secondary manipulations at the frozen settings (ACT-R runs; 95% intervals over simulation seeds)*
 
 | Effect | Model | Human reference |
 |---|---|---|
@@ -323,55 +350,121 @@ Table 7. *Secondary manipulations at the frozen settings (ACT-R runs; 95% interv
 
 # Comparison with other models
 
-The question a prospective user will ask is whether the module is more accurate than what already exists. Eighteen configurations of eleven model families were scored on the same participants, splits, trimming, objective and code (Table 8; Figure 3). The ACT-R rows are runs of the module (defaults, frozen fit, refit), of a variant module described below, and of timing mirrors of the stock module and of PAAV. The trial-level rows are implementations of the published models in `reference/baselines.py`, fitted to the training participants with differential evolution (60 generations, population 8 per dimension, 200 trials per cell) and run at two seeds by 1,000 trials per cell.
+A prospective user needs to know whether the added mechanisms improve accuracy relative to the available alternatives. We therefore scored 18 model configurations from 11 model families using the same participants, splits, trimming rules, objective, and evaluation code (Tables 8 and 9; Figure 3). The comparison was conducted after the frozen test results had been inspected and is therefore exploratory. The ACT-R rows include direct runs of gs-vision and gs6-vision, a timing mirror of the stock module, and a display-level mirror of PAAV. The trial-level rows are implementations of published model families in `reference/baselines.py`. We fitted these models to the training participants with differential evolution (Storn & Price, 1997; 60 generations, a population of 8 per dimension, and 200 trials per cell) and evaluated two fresh seeds with 1,000 trials per cell.
 
-*The stock ACT-R module* was driven by the ordinary find, attend, test loop with the same measured response stage. With its defaults (four finsts, 85 ms attention shift, three productions per item, a counting strategy so that absent trials terminate) its conjunction search runs at 47 to 57 ms per item present and 118 ms per item absent (human 11 and 33), its spatial search at 94 to 119 and 235 ms per item (human 45 and 98), and its feature search answers "absent" in 210 ms; its quantile RMSE on the test participants is 501 ms (Figure 4). Letting its attention latency, production count, finst count and response times vary brings it to 137 ms, and does so by driving the attention latency to 6 ms and the finst count to 19, which is no longer the stock module. These rows are a mirror of the module's documented timing rather than a run in ACT-R, and the mirror reproduces that timing exactly in a unit test.
+## gs-vision
 
-*PAAV* was scored the same way, because it runs only on ACT-R 6 and porting its 7,000 lines to the current visicon, device and module interfaces was out of scope. Its mirror in `reference/baselines.py` transcribes the mechanisms of the posted source (`paav-visual-module`, version 0.98e): per-feature acuity (a feature of an item of size *s* at eccentricity *e* is visible when *s* > *a~f~e*^2^ − *b~f~e*, with the posted *a* and *b* per feature and the noise term disabled as in the source), iconic memory with four-second persistence, bottom-up activation as binary feature dissimilarity over one plus the square root of the pixel distance, top-down activation of 1, 0.5 or 0 per template feature for a match, an invisible feature, or a mismatch, selection of the highest 1.1·BU + 0.45·TD + noise among unattended items, permanent attended marks, the visual decision threshold that prunes candidates no farther from gaze than the last attended object whose top-down activation does not exceed it and declares absence when nothing remains, saccades of 20 ms plus 2 ms per degree with landing noise, 50 ms encoding, and three 50 ms productions per item. It runs on the same displays as gs-vision, so acuity and distance act on it as they do on the module. There is no Lisp implementation to check it against, which is the caveat that distinguishes these rows from the gs-vision rows. With the posted values PAAV scores 383 ms on the test participants. Feature search fits (71 ms; the threshold rule quits after one fixation on absent trials), but conjunction absent slopes are three times the human value (94 versus 33 ms per item), spatial-configuration search is nearly efficient (5 and 23 versus 45 and 98 ms per item), because shape is resolvable within about nine degrees and the binary contrast rule makes the 2 pop out among 5s, and it misses 10 percent of targets in feature and spatial search, because items in the corners of a 22.5 degree field have no visible feature from the fixation cross and are not in iconic memory when the search quits. Fitting nine parameters (noise, the two map weights, encoding time, production count, an acuity scale and the response stage) brings it to 275 ms; the fit does so by removing bottom-up activation (weight 0.03) and raising noise, which repairs conjunction search (28 ms per item absent) and the miss rates but leaves spatial search at 6 and 14 ms per item, and 3.6 percent misses at set size 18 against 10. A one-item-per-fixation architecture with a pruning rule cannot produce an inefficient search on a display where the target's shape is visible from a few fixations away; that is the limitation the Guided Search architecture removes.
+gs-vision is the focal model developed in this paper. It is an ACT-R vision module that operates on item locations and features, combines bottom-up salience and top-down guidance in a priority map, selects and identifies several items covertly, remembers rejected items, and races competitive and adaptive rules for ending an unsuccessful search. Per-feature acuity and iconic memory determine what information is available at each eye position, and EMMA supplies saccade timing and landing variability. The model returns a visual object to the ACT-R production system, which then makes the response through ACT-R's motor module. Tables 8 and 9 show three configurations of this same architecture: the unchanged module defaults, the prospectively frozen six-parameter fit, and the exploratory 13-parameter refit.
 
-*A Guided Search 6 variant* (gs6-vision, in its own folder of the repository) replaces the CGS engine with Wolfe's posted Guided Search 6 simulation: a two-bound diffusion per item stepped every 10 ms, an adaptive start point, the quit-signal diffuser with the MATLAB's feedback rules, diffuser-only memory, and Guided Search 2's dual orientation channels. It was built to answer how close the module can be made to Wolfe's own numbers. As posted, the engine does not fit (795 ms untuned; 313 ms with only the spatial layer fitted around it); with its rates fitted it reaches 122.5 ms on the test participants, about the frozen gs-vision fit, but with a drift, quit increment and selection interval far from the posted values. It produces false alarms at a plausible rate (1.3 percent against 2.3), which gs-vision does not, and misses 18 to 20 percent of targets at set size 3 in conjunction and spatial search, because its quit threshold scales with set size (Figure 5). Its absent-to-present slope ratio in conjunction search is 7 where the human value is 3.
+## Stock ACT-R vision module
 
-*Trial-level models* have no display, no eye and no acuity, so they can be compared only on RT quantiles and errors. They were: a serial self-terminating model with a preattentive stage (Treisman & Gelade, 1980); Competitive Guided Search in two protocols (timing shared across tasks, and the paper's own all-parameters-per-task protocol); the fixation-based model of Hulleman and Olivers (2017); a parallel race with a capacity exponent (Townsend & Ashby, 1983; the competitor of Moran et al., 2016); and Wolfe's posted Guided Search 6 engine with a per-task target weight, as posted and with its rates fitted.
+The stock ACT-R module was driven by the ordinary find, attend, test loop with the same measured response stage. With its defaults (four finsts, 85 ms attention shift, three productions per item, a counting strategy so that absent trials terminate) its conjunction search runs at 47 to 57 ms per item present and 118 ms per item absent (human 11 and 33), its spatial search at 94 to 119 and 235 ms per item (human 45 and 98), and its feature search answers "absent" in 210 ms; its quantile RMSE on the test participants is 501 ms (Figure 4). Letting its attention latency, production count, finst count and response times vary brings it to 137 ms, and does so by driving the attention latency to 6 ms and the finst count to 19, which is no longer the stock module. These rows are a mirror of the module's documented timing rather than a run in ACT-R, and the mirror reproduces that timing exactly in a unit test.
 
-Table 8. *All models on the held-out test participants (quantile RMSE in ms; miss and false-alarm percentages are means over cells, human values in brackets)*
+## PAAV
 
-| Model | In ACT-R | Fitted params | Quantile RMSE | Feature | Conjunction | Spatial | Slopes within 5 ms/item | Largest miss error | Miss % (human 4.1) | FA % (human 2.3) |
-|---|---|---|---|---|---|---|---|---|---|---|
-| *Training participants' own averages* | | | *93.3* | 25 | 60 | 195 | 5/6 | 2.0 | 3.5 | 1.18 |
-| Serial self-terminating (FIT) | no | 9 | 80.5 | 14 | 71 | 157 | 3/6 | 6.7 | 3.2 | 0.85 |
-| CGS, shared timing | no | 12 | 82.9 | 29 | 68 | 152 | 2/6 | 6.1 | 4.6 | 1.15 |
-| CGS, per task | no | 24 | 98.8 | 24 | 84 | 189 | 2/6 | 2.7 | 3.6 | 1.87 |
-| **gs-vision, refit** | **yes** | 13 | **100.1** | 25 | 90 | 186 | 4/6 | 11.3 | 7.7 | 0.29 |
-| Fixation-based (H&O) | no | 12 | 105.6 | 76 | 78 | 163 | 3/6 | 5.9 | 5.0 | 0.01 |
-| GS6 engine, rates fitted | no | 12 | 114.3 | 22 | 100 | 222 | 1/6 | 4.2 | 3.3 | 1.27 |
-| gs6-vision, rates fitted | yes | 16 | 122.5 | 42 | 98 | 227 | 3/6 | 18.4 | 11.1 | 1.30 |
-| GS6 engine, as posted | no | 6 | 123.3 | 121 | 78 | 171 | 2/6 | 12.0 | 7.6 | 1.40 |
-| **gs-vision, frozen fit** | **yes** | 6 | **127.7** | 99 | 162 | 122 | 2/6 | 10.9 | 7.2 | 0.00 |
-| Parallel race | no | 14 | 129.4 | 72 | 131 | 185 | 3/6 | 8.6 | 1.5 | 1.18 |
-| Stock ACT-R vision, timing fitted (mirror) | mirror | 6 | 137.3 | 29 | 171 | 211 | 2/6 | 10.0 | 0.0 | 0.00 |
-| PAAV, fitted (mirror) | mirror | 9 | 275.4 | 49 | 109 | 668 | 3/6 | 6.4 | 2.3 | 0.00 |
-| gs6-vision, engine as posted | yes | 8 | 312.9 | 92 | 304 | 543 | 4/6 | 14.5 | 8.0 | 1.45 |
-| gs-vision, module defaults | yes | 0 | 365.4 | 103 | 265 | 729 | 3/6 | 12.4 | 7.1 | 0.00 |
-| PAAV, posted values (mirror) | mirror | 0 | 382.9 | 71 | 497 | 582 | 2/6 | 9.0 | 8.4 | 0.00 |
-| Stock ACT-R vision, 4 finsts (mirror) | mirror | 0 | 501.1 | 116 | 546 | 841 | 2/6 | 18.4 | 7.3 | 0.00 |
-| Stock ACT-R vision, 20 finsts (mirror) | mirror | 0 | 540.1 | 116 | 574 | 930 | 2/6 | 10.0 | 0.0 | 0.00 |
-| gs6-vision, Wolfe's values | yes | 0 | 795.1 | 157 | 564 | 1664 | 3/6 | 10.8 | 9.1 | 1.48 |
+PAAV was scored the same way, because it runs only on ACT-R 6 and porting its 7,000 lines to the current visicon, device and module interfaces was out of scope. Its mirror in `reference/baselines.py` transcribes the mechanisms of the posted source (`paav-visual-module`, version 0.98e): per-feature acuity (a feature of an item of size *s* at eccentricity *e* is visible when *s* > *a~f~e*^2^ − *b~f~e*, with the posted *a* and *b* per feature and the noise term disabled as in the source), iconic memory with four-second persistence, bottom-up activation as binary feature dissimilarity over one plus the square root of the pixel distance, top-down activation of 1, 0.5 or 0 per template feature for a match, an invisible feature, or a mismatch, selection of the highest 1.1·BU + 0.45·TD + noise among unattended items, permanent attended marks, the visual decision threshold that prunes candidates no farther from gaze than the last attended object whose top-down activation does not exceed it and declares absence when nothing remains, saccades of 20 ms plus 2 ms per degree with landing noise, 50 ms encoding, and three 50 ms productions per item. It runs on the same displays as gs-vision, so acuity and distance act on it as they do on the module. There is no Lisp implementation to check it against, which is the caveat that distinguishes these rows from the gs-vision rows. With the posted values PAAV scores 383 ms on the test participants. Feature search fits (71 ms; the threshold rule quits after one fixation on absent trials), but conjunction absent slopes are three times the human value (94 versus 33 ms per item), spatial-configuration search is nearly efficient (5 and 23 versus 45 and 98 ms per item), because shape is resolvable within about nine degrees and the binary contrast rule makes the 2 pop out among 5s, and it misses 10 percent of targets in feature and spatial search, because items in the corners of a 22.5 degree field have no visible feature from the fixation cross and are not in iconic memory when the search quits. Fitting nine parameters (noise, the two map weights, encoding time, production count, an acuity scale and the response stage) brings it to 275 ms; the fit does so by removing bottom-up activation (weight 0.03) and raising noise, which repairs conjunction search (28 ms per item absent) and the miss rates but leaves spatial search at 6 and 14 ms per item, and 3.6 percent misses at set size 18 against 10. A one-item-per-fixation architecture with a pruning rule cannot produce an inefficient search on a display where the target's shape is visible from a few fixations away; that is the limitation the Guided Search architecture removes.
 
-![Figure 3. Mean cell quantile RMSE of every model on the test participants (left) and the validation participants (right). Blue bars are ACT-R vision modules with a display and eyes (the stock module and PAAV as timing mirrors); gray bars are trial-level models with no display. The dashed line is the score of the training participants' own cell averages against the same participants, the level a model that reproduced its training data perfectly would reach.](figs/fig_comparison.png)
+## gs6-vision
 
-![Figure 4. The stock ACT-R vision module driven by a find, attend, test production loop (timing mirror, four finsts), against the test participants, in the format of Figure 2.](figs/fig_stock_test.png)
+A Guided Search 6 variant (gs6-vision, in its own folder of the repository) replaces the CGS engine with Wolfe's posted Guided Search 6 simulation: a two-bound diffusion per item stepped every 10 ms, an adaptive start point, the quit-signal diffuser with the MATLAB's feedback rules, diffuser-only memory, and Guided Search 2's dual orientation channels. It was built to answer how close the module can be made to Wolfe's own numbers. As posted, the engine does not fit (795 ms untuned; 313 ms with only the spatial layer fitted around it); with its rates fitted it reaches 122.5 ms on the test participants, about the frozen gs-vision fit, but with a drift, quit increment and selection interval far from the posted values. It produces false alarms at a plausible rate (1.3 percent against 2.3), which gs-vision does not, and misses 18 to 20 percent of targets at set size 3 in conjunction and spatial search, because its quit threshold scales with set size (Figure 5). Its absent-to-present slope ratio in conjunction search is 7 where the human value is 3.
+
+## Serial self-terminating search (FIT)
+
+The serial self-terminating model is an operational baseline derived from Feature Integration Theory (Treisman & Gelade, 1980). Feature search uses one preattentive detection stage regardless of set size. Conjunction and spatial-configuration search inspect items sequentially in random order without replacement. A present trial ends when the target is found, whereas an absent trial exhausts the display, producing the model's characteristic prediction that the absent slope is about twice the present slope. Identification misses and response flips provide its two error sources. This is a trial-level model: it receives only the task, set size, and target presence, and does not simulate a display or eye movements.
+
+## Competitive Guided Search (CGS)
+
+Competitive Guided Search (Moran et al., 2013) treats items and a quit unit as competitors in a weighted race. Every distractor has unit weight, the target has a task-dependent guidance weight, and selection is proportional to these weights. Selecting an item incurs a noisy Wald identification time. Rejecting a distractor removes it from the race and increases the quit unit's weight, so the probability of stopping grows as the search continues. Tables 8 and 9 report two fitting protocols for the same mechanism. In “CGS, shared timing,” identification and response timing are shared across tasks while target guidance and quitting vary by task. In “CGS, per task,” all eight parameters are fitted separately for feature, conjunction, and spatial search, matching the more flexible protocol used in the original CGS analysis. Like the other trial-level models, CGS has no stimulus geometry, acuity, or eye movements.
+
+## Fixation-based search (H&O)
+
+The fixation-based baseline operationalizes the account of Hulleman and Olivers (2017), in which the useful unit is a fixation rather than an individual item. Each fixation takes a variable amount of time and samples up to a task-specific number of items within a functional visual field. The model remembers the items sampled during a fitted number of recent fixations; after that window they can be sampled again. It responds “present” when the target is detected and “absent” after the accumulated samples cover a fitted proportion of the display. Early stopping and imperfect detection produce misses. Because this implementation has no item coordinates, its fixations represent sampling episodes rather than simulated gaze positions.
+
+## Parallel race with a capacity exponent
+
+The parallel-race baseline represents the parallel alternative described by Townsend and Ashby (1983) and compared with CGS by Moran et al. (2016). All items begin processing simultaneously, and each has a noisy Wald finishing time. A capacity exponent slows every item's processing rate as set size grows, while a task-specific guidance factor gives a present target an advantage over distractors. A present response occurs when the target finishes; an absent response waits for the slowest distractor. The model therefore explains set-size effects through divided processing capacity rather than serial selection. A target-miss probability and a response-flip probability generate errors.
+
+## Guided Search 6 trial-level engine
+
+The Guided Search 6 trial-level model is a direct comparison with Wolfe's posted simulation (Wolfe, 2021), stripped of the ACT-R, display, acuity, and eye-movement layers used by gs6-vision. Items enter a capacity-limited diffuser and accumulate noisy evidence toward target or distractor bounds while a separate quit signal races toward its threshold. Feedback changes the identification start point after hits and false alarms and changes the quit threshold after misses and true negatives. Because there is no priority map, a fitted task-specific target weight represents guidance. “GS6 engine, as posted” fixes the diffusion and quitting rates at Wolfe's values and fits only guidance and response timing; “GS6 engine, rates fitted” also fits those engine rates. Comparing these rows with gs6-vision isolates the cost of embedding the same general decision engine in a display-based ACT-R module.
+
+## Human-reference baseline
+
+The “training participants' own averages” row is not a cognitive model and has no fitted parameters. It treats the mean cell quantiles and error rates of the training participants as predictions for the held-out test participants. Its score shows how much the participant groups differ under the same metric and gives a useful scale for interpreting small differences between fitted models. It is a reference for cross-participant variability, not an estimate of a theoretical lower bound.
+
+## Comparison results
+
+The remaining rows of Tables 8 and 9 are parameter configurations of the models described above, not additional architectures. The tables report their held-out reaction-time, slope, and error fits; Figures 3 through 5 summarize the principal differences.
+
+**Table 8**
+
+*Reaction-time fit for all models on the held-out test participants (quantile RMSE in ms)*
+
+| Model | ACT-R status | Fitted parameters | Overall | Feature | Conjunction | Spatial |
+|---|---|---:|---:|---:|---:|---:|
+| Serial self-terminating (FIT) | trial-level | 9 | 80.5 | 14 | 71 | 157 |
+| CGS, shared timing | trial-level | 12 | 82.9 | 29 | 68 | 152 |
+| *Training participants' own averages* | *human reference* | — | *93.3* | 25 | 60 | 195 |
+| CGS, per task | trial-level | 24 | 98.8 | 24 | 84 | 189 |
+| **gs-vision, refit** | **ACT-R run** | 13 | **100.1** | 25 | 90 | 186 |
+| Fixation-based (H&O) | trial-level | 12 | 105.6 | 76 | 78 | 163 |
+| GS6 engine, rates fitted | trial-level | 12 | 114.3 | 22 | 100 | 222 |
+| gs6-vision, rates fitted | ACT-R run | 16 | 122.5 | 42 | 98 | 227 |
+| GS6 engine, as posted | trial-level | 6 | 123.3 | 121 | 78 | 171 |
+| **gs-vision, frozen fit** | **ACT-R run** | 6 | **127.7** | 99 | 162 | 122 |
+| Parallel race | trial-level | 14 | 129.4 | 72 | 131 | 185 |
+| Stock ACT-R vision, timing fitted | timing mirror | 6 | 137.3 | 29 | 171 | 211 |
+| PAAV, fitted | display-level mirror | 9 | 275.4 | 49 | 109 | 668 |
+| gs6-vision, engine as posted | ACT-R run | 8 | 312.9 | 92 | 304 | 543 |
+| gs-vision, module defaults | ACT-R run | 0 | 365.4 | 103 | 265 | 729 |
+| PAAV, posted values | display-level mirror | 0 | 382.9 | 71 | 497 | 582 |
+| Stock ACT-R vision, 4 finsts | timing mirror | 0 | 501.1 | 116 | 546 | 841 |
+| Stock ACT-R vision, 20 finsts | timing mirror | 0 | 540.1 | 116 | 574 | 930 |
+| gs6-vision, Wolfe's values | ACT-R run | 0 | 795.1 | 157 | 564 | 1,664 |
+
+*Note.* Lower RMSE indicates a better fit. "ACT-R run" identifies results produced by an implemented ACT-R module. Mirror rows reproduce the relevant module mechanisms without running the original module. The human-reference row scores the training participants' cell averages against the test participants and is not a fitted model.
+
+**Table 9**
+
+*Slope and error measures for all models on the held-out test participants*
+
+| Model | Slopes within 5 ms/item | Largest miss error (points) | Miss % | False-alarm % |
+|---|---:|---:|---:|---:|
+| Serial self-terminating (FIT) | 3/6 | 6.7 | 3.2 | 0.85 |
+| CGS, shared timing | 2/6 | 6.1 | 4.6 | 1.15 |
+| *Training participants' own averages* | *5/6* | *2.0* | *3.5* | *1.18* |
+| CGS, per task | 2/6 | 2.7 | 3.6 | 1.87 |
+| **gs-vision, refit** | **4/6** | **11.3** | **7.7** | **0.29** |
+| Fixation-based (H&O) | 3/6 | 5.9 | 5.0 | 0.01 |
+| GS6 engine, rates fitted | 1/6 | 4.2 | 3.3 | 1.27 |
+| gs6-vision, rates fitted | 3/6 | 18.4 | 11.1 | 1.30 |
+| GS6 engine, as posted | 2/6 | 12.0 | 7.6 | 1.40 |
+| **gs-vision, frozen fit** | **2/6** | **10.9** | **7.2** | **0.00** |
+| Parallel race | 3/6 | 8.6 | 1.5 | 1.18 |
+| Stock ACT-R vision, timing fitted | 2/6 | 10.0 | 0.0 | 0.00 |
+| PAAV, fitted | 3/6 | 6.4 | 2.3 | 0.00 |
+| gs6-vision, engine as posted | 4/6 | 14.5 | 8.0 | 1.45 |
+| gs-vision, module defaults | 3/6 | 12.4 | 7.1 | 0.00 |
+| PAAV, posted values | 2/6 | 9.0 | 8.4 | 0.00 |
+| Stock ACT-R vision, 4 finsts | 2/6 | 18.4 | 7.3 | 0.00 |
+| Stock ACT-R vision, 20 finsts | 2/6 | 10.0 | 0.0 | 0.00 |
+| gs6-vision, Wolfe's values | 3/6 | 10.8 | 9.1 | 1.48 |
+
+*Note.* Human means are 4.1% misses and 2.3% false alarms. The largest miss error is the largest absolute model–human difference across present-trial cells. The slope measure counts the six task-by-presence slopes that fall within 5 ms per item of the human slope.
+
+![Figure 3. Mean cell quantile RMSE of every model on the test participants (left) and the validation participants (right). Blue bars are ACT-R vision modules with a display and eyes (the default module and PAAV as timing mirrors); gray bars are trial-level models with no display. The dashed line is the score of the training participants' own cell averages against the same participants, the level a model that reproduced its training data perfectly would reach.](figs/fig_comparison.png)
+
+![Figure 4. The default ACT-R vision module driven by a find, attend, test production loop (timing mirror, four finsts), against the test participants, in the format of Figure 2.](figs/fig_stock_test.png)
 
 ![Figure 5. Miss rates on present trials by set size for the human test participants and four models.](figs/fig_misses.png)
 
-Four conclusions follow, and they should be read together.
+Four conclusions follow from this exploratory comparison. First, gs-vision provides the lowest RT-quantile error among the ACT-R vision-module accounts tested here. On the held-out participants, the exploratory refit scored 100.1 ms and the frozen fit scored 127.7 ms, compared with 122.5 ms for the fitted gs6-vision variant, 137.3 ms for the fitted stock-module timing mirror, 275.4 ms for fitted PAAV, 382.9 ms for PAAV at its posted values, and 501.1 to 540.1 ms for the stock module with its default timing. The claim that gs-vision is the most accurate current ACT-R vision module is therefore supported for RT distributions in this benchmark and under this evaluation protocol. It is not a claim about every visual task or dependent measure.
 
-First, *gs-vision is the most accurate model of visual search that runs in ACT-R and has eyes.* On the held-out participants its refit scores 100 ms and its frozen fit 128 ms, against 123 ms for the Guided Search 6 variant with its rates fitted, 137 ms for the stock module with its timing fitted, 275 ms for PAAV with nine parameters fitted, 383 ms for PAAV at its posted values, and 501 to 540 ms for the stock module as shipped. The stock module cannot be made to reproduce the benchmark without changing the numbers that define it, and PAAV cannot be made to produce an inefficient search. On the validation participants the frozen gs-vision fit is the best model of any kind (Figure 3, right).
+Second, the best trial-level models remain numerically more accurate. The serial self-terminating model and CGS with shared timing scored 80.5 and 82.9 ms, respectively. However, the training participants' cell averages, treated as predictions of the test participants, scored 93.3 ms, and the order of the five best models changed on the validation split. With only two held-out participants per task, the observed 18–20 ms difference between gs-vision and the best trial-level models is smaller than the cross-split variation represented by this human-reference baseline. The comparison therefore does not establish a reliable advantage for either side at that scale. The smaller published CGS errors of 35, 22, and 5 ms for the three tasks (Moran et al., 2013) were obtained with per-participant fits; under the present group-level, held-out protocol, the corresponding errors were 29, 68, and 152 ms.
 
-Second, *it is within participant noise of the best models of any kind.* The two best trial-level models, a serial self-terminating model and CGS with shared timing, score 80 and 83 ms on the test participants. The training participants' own cell averages, used as a "model" of the test participants, score 93 ms, and the ranking of the top five models reverses on the validation participants. Differences under about 25 ms between models are not interpretable with two held-out participants per task, and nothing fitted on these splits can be expected to reach the 40 ms target. CGS's published misfits of 35, 22 and 5 ms for the three tasks (Moran et al., 2013) come from per-participant fits; fitted to group quantiles here and scored on held-out participants, the same model gives 152, 68 and 29 ms.
+Third, the models differ in what they explain. The two best trial-level models fit a nondecision-time distribution for each response and task-specific timing. In contrast, gs-vision uses the response times produced by ACT-R's motor module and shares one identification process and one quit controller across tasks. It derives task differences from the display, acuity, and target template. gs-vision closely fits feature search and parts of the conjunction distribution, but it is 130 to 210 ms slower than the test participants in spatial search and is late in the early conjunction-absent quantiles at set sizes 3 and 6 because the covert loop initiates a saccade before it can quit.
 
-Third, *what the better-fitting models do differently is not a search mechanism.* Both fit a non-decision time per response and an exponential residual (two parameters that gs-vision does not have, because its response stage is measured from the motor module), and both fit per-task timing (the serial model's 23 ms per item in conjunction search, with an inspection-time coefficient of variation of 1.2, is a curve rather than a mechanism). gs-vision has one identification process and one quit controller and derives the differences between tasks from acuity and the template on a display. It matches CGS in feature search and beats the serial model in the conjunction-absent tails; it loses in spatial search, where it follows the slower training group and is uniformly 130 to 210 ms slow on the two test participants, and in conjunction-absent trials at set sizes 3 and 6, where its first quantiles are late because the covert loop pays a saccade before it can quit.
-
-Fourth, *where gs-vision loses is the miss rate* (Figure 5). Its largest miss-rate error is 11 points against 3 to 7 for the trial-level models; at set size 18 in conjunction and spatial search it misses 18 to 19 percent of targets where the human observers miss 6 and 10. The quit rule abandons targets that are still being identified or still waiting for a saccade. CGS's quit unit, whose weight grows with each rejection against a fixed per-task target weight, produces misses that rise with set size at close to the human rate with one parameter per task; the module already has that unit, but its increment is shared across tasks and competes with the adaptive threshold instead of replacing it. That is the mechanism to change next.
+Fourth, gs-vision's main accuracy limitation is its miss rate (Figure 5). Its largest cell-level miss-rate error is 11.3 percentage points, compared with 2.7 to 6.7 points for the best-fitting trial-level models. At set size 18 in conjunction and spatial search, gs-vision misses 18% to 19% of targets, whereas the human observers miss approximately 6% and 10%. The current quit rule can terminate a search while a target is being identified or waiting for a saccade. CGS's task-specific quit weight follows the human increase in misses more closely. Revising how the competitive and adaptive quit mechanisms interact is therefore the most important next theoretical change.
 
 # Discussion
 
@@ -385,28 +478,17 @@ For cognitive models of applied tasks, the relevant properties are that the sear
 
 We have reported the failures as measured, and we list them here because they are the roadmap. Miss rates rise too steeply with set size in conjunction and spatial search, and the refit's error goal of 0.12 is a symptom rather than a cure; a per-task quit unit in the style of CGS is the next change. Saccade amplitudes are about twice the human value and fixation durations somewhat short, because covert selection exhausts the attentional field before the eye moves; a policy that lets the eye start earlier is implemented as `:gs-saccade-trigger` but was not selected strongly by the fits, and matched scanpath comparisons await eye-tracking data with the timing and stimulus information a simulation needs. The frozen model produces no false alarms; the refit's decision-error parameter produces them at 0.3 percent against 2.3, and the Guided Search 6 variant's two-bound diffusion gets closer. The prevalence effect is reproduced in the wrong direction by the posted Guided Search 6 feedback rules; a controller whose down-step is not multiplied by prevalence would restore a fixed equilibrium and a per-task error goal is what the human miss rates require. Priming of pop-out is not established. And the fits are group-level fits to five or six training participants, which, as the split-to-split differences of 20 to 30 percent in speed show, is the main limit on how well any model can score here; leave-participants-out or hierarchical fitting is the appropriate next protocol.
 
-## On calling it the best
+## Scope of the accuracy claim
 
-A tutorial that introduces a tool should say plainly what the tool's evidence supports. On the benchmark that the field uses to constrain models of search, with participants held out before fitting and every competitor fitted with the same objective, gs-vision is the most accurate vision module available for ACT-R: it is better than the stock module by a factor of four as shipped and better than the stock module with its timing fitted, better than PAAV at its posted values by a factor of three and than PAAV fitted by a factor of two and a half, and better than a faithful implementation of Guided Search 6's own engine on the same spatial layer. It is not better than the best trial-level models on RT quantiles, and the difference between it and them is smaller than the difference between two pairs of human participants. It has eyes, a display and a fixed response stage, which they do not, and it is worse at misses, which they are not. Those are the terms on which we recommend it.
+The results support a specific claim: among the ACT-R vision-module accounts evaluated on the Wolfe et al. (2010) benchmark, gs-vision provides the most accurate simulation of held-out RT distributions. Its exploratory refit reduces quantile RMSE by 27% relative to the fitted stock-module timing mirror, by 64% relative to fitted PAAV, and by 18% relative to the fitted gs6-vision variant. The comparison does not show that gs-vision is the best visual-search model in general. Two trial-level models have lower numerical RT error, several models reproduce misses more accurately, and the PAAV and stock rows are mirrors rather than direct ACT-R runs. gs-vision offers a different combination of capabilities: it operates on a display, represents acuity and eye movements, uses ACT-R's measured response stage, and provides a buffer interface for integration into a complete cognitive model. We therefore recommend it when those capabilities are needed, while treating its quitting and eye-movement predictions as targets for further development.
 
 ## Principles for validating an architecture module
 
 Three practices made the results in this paper reportable, and we recommend them for other module work. Hold participants out before fitting and freeze the selection before looking at them; label every later result exploratory, as we have. Score the model's implementation in the architecture against an independent implementation of the same mechanisms on identical inputs, so that a misfit can be attributed to the theory rather than to a bug; and note that a slowly drifting learned state (here, the quit threshold) makes that comparison anti-conservative unless the state is frozen. And fit the competitors with the same data, splits, objective and code as the model, including the architecture's own stock module, because a published misfit obtained under a different protocol is not a comparison.
 
-# Open Practices Statement
+# Conclusion
 
-The gs-vision module, the gs6-vision variant, the Python mirror and harness, the trial-level baseline models, all fitting and evaluation scripts, the run records (parameter values, seeds, source hashes, commands and logs) for every table in this paper, and the generated evaluation artifacts are available at https://github.com/ar-zadeh/gs-vision. The human data are the Wolfe et al. (2010) archive (https://search.bwh.harvard.edu/new/data_set_files.html) and the Wu and Wolfe (2022) fixation data (https://osf.io/vzg28/); the harness downloads them and verifies their hashes. The following commands regenerate the paper's ACT-R validation report, the model comparison and the test suites from the repository:
-
-```
-python harness/report.py --manifest data/model/repair_20260905/run_manifest.json --final-test
-python harness/refit.py evaluate
-python harness/compare_models.py fit && python harness/compare_models.py final
-python harness/compare_models.py evaluate && python harness/compare_models.py report
-sbcl --non-interactive --load tests/test_module_events.lisp
-python -m pytest reference/test_reference.py tests/ -q
-```
-
-None of the reported studies were preregistered. The train/validation/test split, the objective, and the three summary targets were fixed and recorded in the repository before the first fit.
+This paper introduced gs-vision as an extension of ACT-R's stock vision module and provided a complete workflow for using it in cognitive models. The module integrates feature-based guidance, acuity, covert selection, capacity-limited identification, eye movements, memory, and search termination while retaining the existing ACT-R visual buffers and ordinary requests. In the Wolfe et al. (2010) benchmark, gs-vision produced the most accurate held-out RT distributions among the ACT-R vision-module accounts evaluated under the common protocol. The exploratory refit obtained a mean cell quantile RMSE of 100.1 ms, compared with 122.5 ms for gs6-vision, 137.3 ms for the fitted stock timing mirror, and 275.4 ms for fitted PAAV. This result supports using gs-vision as the current ACT-R module when a model requires a process-level account of visual search. At the same time, high miss rates, long saccades, weak prevalence effects, and the small number of held-out participants limit the scope of this conclusion. The public implementation and validation workflow make these limitations testable and provide a foundation for improving visual perception in ACT-R models and for developing vision modules for other architectures.
 
 # Declarations
 
@@ -426,6 +508,21 @@ None of the reported studies were preregistered. The train/validation/test split
 
 *Authors' contributions.* AB: conceptualization, software, validation, writing the paper, editing. FER: reviewing, editing.
 
+# Open Practices Statement
+
+The gs-vision module, the gs6-vision variant, the Python mirror and harness, the trial-level baseline models, all fitting and evaluation scripts, the run records (parameter values, seeds, source hashes, commands and logs) for every table in this paper, and the generated evaluation artifacts are available at https://github.com/ar-zadeh/gs-vision. The human data are the Wolfe et al. (2010) archive (https://search.bwh.harvard.edu/new/data_set_files.html) and the Wu and Wolfe (2022) fixation data (https://osf.io/vzg28/); the harness downloads them and verifies their hashes. The following commands regenerate the paper's ACT-R validation report, the model comparison and the test suites from the repository:
+
+```
+python harness/report.py --manifest data/model/repair_20260905/run_manifest.json --final-test
+python harness/refit.py evaluate
+python harness/compare_models.py fit && python harness/compare_models.py final
+python harness/compare_models.py evaluate && python harness/compare_models.py report
+sbcl --non-interactive --load tests/test_module_events.lisp
+python -m pytest reference/test_reference.py tests/ -q
+```
+
+None of the reported studies were preregistered. The train/validation/test split, the objective, and the three summary targets were fixed and recorded in the repository before the first fit.
+
 # References
 
 Adam, K. C. S., Patel, T., Rangan, N., & Serences, J. T. (2021). Classic visual search effects in an additional singleton task: An open dataset. *Journal of Cognition, 4*(1), 34. https://doi.org/10.5334/joc.182
@@ -444,8 +541,6 @@ Chen, Y., Yang, Z., Ahn, S., Samaras, D., Hoai, M., & Zelinsky, G. (2021). COCO-
 
 Dimov, C., Khader, P. H., Marewski, J. N., & Pachur, T. (2020). How to model the neurocognitive dynamics of decision making: A methodological primer with ACT-R. *Behavior Research Methods, 52*(2), 857–880. https://doi.org/10.3758/s13428-019-01286-2
 
-Duncan, J., & Humphreys, G. W. (1989). Visual search and stimulus similarity. *Psychological Review, 96*(3), 433–458. https://doi.org/10.1037/0033-295X.96.3.433
-
 Fleetwood, M. D., & Byrne, M. D. (2006). Modeling the visual search of displays: A revised ACT-R model of icon search based on eye-tracking data. *Human–Computer Interaction, 21*(2), 153–197. https://doi.org/10.1207/s15327051hci2102_1
 
 Hulleman, J., & Olivers, C. N. L. (2017). The impending demise of the item in visual search. *Behavioral and Brain Sciences, 40*, e132. https://doi.org/10.1017/S0140525X15002794
@@ -461,6 +556,8 @@ Maljkovic, V., & Nakayama, K. (1994). Priming of pop-out: I. Role of features. *
 Moran, R., Zehetleitner, M., Liesefeld, H. R., Müller, H. J., & Usher, M. (2016). Serial vs. parallel models of attention in visual search: Accounting for benchmark RT-distributions. *Psychonomic Bulletin & Review, 23*(5), 1300–1315. https://doi.org/10.3758/s13423-015-0978-1
 
 Moran, R., Zehetleitner, M., Müller, H. J., & Usher, M. (2013). Competitive guided search: Meeting the challenge of benchmark RT distributions. *Journal of Vision, 13*(8), 24. https://doi.org/10.1167/13.8.24
+
+Newell, A. (1990). *Unified theories of cognition*. Harvard University Press.
 
 Nyamsuren, E., & Taatgen, N. A. (2013). Pre-attentive and attentive vision module. *Cognitive Systems Research, 24*, 62–71. https://doi.org/10.1016/j.cogsys.2012.12.010
 

@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "gs-vision architecture and one-search flow",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [1390, 820]
+  },
+  "components": [
+    {
+      "id": "productions",
+      "type": "external",
+      "label": "ACT-R productions",
+      "sublabel": "Request • result/error • feedback",
+      "pos": [515, 30],
+      "size": [470, 88]
+    },
+    {
+      "id": "visicon",
+      "type": "cloud",
+      "label": "Visicon + acuity",
+      "sublabel": "Per-feature availability by eccentricity",
+      "pos": [50, 210],
+      "size": [250, 92]
+    },
+    {
+      "id": "iconic_memory",
+      "type": "database",
+      "label": "Iconic memory",
+      "sublabel": "4 s persistence • refreshed each fixation",
+      "pos": [50, 400],
+      "size": [250, 92]
+    },
+    {
+      "id": "feedback_learning",
+      "type": "database",
+      "label": "Feedback learning",
+      "sublabel": "Threshold scale • prevalence • priming",
+      "pos": [50, 620],
+      "size": [250, 92]
+    },
+    {
+      "id": "priority_map",
+      "type": "backend",
+      "label": "Priority map",
+      "sublabel": "Bottom-up + top-down • biases • IOR • noise",
+      "pos": [385, 300],
+      "size": [270, 110]
+    },
+    {
+      "id": "saccades",
+      "type": "backend",
+      "label": "Saccades (EMMA)",
+      "sublabel": "Prepare + execute • landing noise • guidance",
+      "pos": [385, 620],
+      "size": [270, 92]
+    },
+    {
+      "id": "covert_selection",
+      "type": "backend",
+      "label": "Covert selection",
+      "sublabel": "Luce choice every 50 ms • attentional field",
+      "pos": [735, 210],
+      "size": [260, 92]
+    },
+    {
+      "id": "diffuser",
+      "type": "backend",
+      "label": "Asynchronous diffuser",
+      "sublabel": "5-item Wald identification process",
+      "pos": [735, 400],
+      "size": [260, 92]
+    },
+    {
+      "id": "quit_rules",
+      "type": "backend",
+      "label": "Quit rules",
+      "sublabel": "Competitive lottery + adaptive threshold",
+      "pos": [735, 620],
+      "size": [260, 92]
+    },
+    {
+      "id": "hit",
+      "type": "frontend",
+      "label": "Hit",
+      "sublabel": "Build object • attend • deliver to visual buffer",
+      "pos": [1100, 210],
+      "size": [270, 92]
+    },
+    {
+      "id": "reject",
+      "type": "security",
+      "label": "Reject",
+      "sublabel": "IOR ring • add delta to quit-unit weight",
+      "pos": [1100, 400],
+      "size": [270, 92]
+    },
+    {
+      "id": "failure",
+      "type": "security",
+      "label": "Failure",
+      "sublabel": "Empty visual buffer • state error",
+      "pos": [1100, 620],
+      "size": [270, 92]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "gs-vision module • ACT-R 7.31.4 vision subclass • scheduled module events",
+      "wraps": [
+        "visicon",
+        "iconic_memory",
+        "feedback_learning",
+        "priority_map",
+        "saccades",
+        "covert_selection",
+        "diffuser",
+        "quit_rules",
+        "hit",
+        "reject",
+        "failure"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "id": "request_search",
+      "from": "productions",
+      "to": "visicon",
+      "label": "search request",
+      "variant": "emphasis"
+    },
+    {
+      "id": "acuity_to_memory",
+      "from": "visicon",
+      "to": "iconic_memory",
+      "label": "visible features",
+      "labelAt": [175, 316]
+    },
+    {
+      "id": "acuity_to_priority",
+      "from": "visicon",
+      "to": "priority_map"
+    },
+    {
+      "id": "memory_to_priority",
+      "from": "iconic_memory",
+      "to": "priority_map"
+    },
+    {
+      "id": "priority_to_selection",
+      "from": "priority_map",
+      "to": "covert_selection",
+      "label": "Luce choice"
+    },
+    {
+      "id": "selection_to_diffuser",
+      "from": "covert_selection",
+      "to": "diffuser",
+      "label": "selected item",
+      "labelAt": [865, 316]
+    },
+    {
+      "id": "diffuser_to_hit",
+      "from": "diffuser",
+      "to": "hit",
+      "label": "identified",
+      "variant": "emphasis"
+    },
+    {
+      "id": "diffuser_to_reject",
+      "from": "diffuser",
+      "to": "reject",
+      "label": "rejected",
+      "labelDy": 4
+    },
+    {
+      "id": "reject_to_quit",
+      "from": "reject",
+      "to": "quit_rules",
+      "label": "quit evidence"
+    },
+    {
+      "id": "quit_to_failure",
+      "from": "quit_rules",
+      "to": "failure",
+      "label": "threshold crossed",
+      "variant": "security",
+      "labelAt": [1047, 705]
+    },
+    {
+      "id": "quit_to_saccades",
+      "from": "quit_rules",
+      "to": "saccades",
+      "label": "continue search"
+    },
+    {
+      "id": "saccades_to_priority",
+      "from": "saccades",
+      "to": "priority_map",
+      "label": "new fixation"
+    },
+    {
+      "id": "saccades_to_feedback",
+      "from": "saccades",
+      "to": "feedback_learning"
+    },
+    {
+      "id": "feedback_to_memory",
+      "from": "feedback_learning",
+      "to": "iconic_memory"
+    },
+    {
+      "id": "hit_to_result",
+      "from": "hit",
+      "to": "productions",
+      "label": "visual result",
+      "variant": "emphasis"
+    },
+    {
+      "id": "failure_to_result",
+      "from": "failure",
+      "to": "productions",
+      "label": "state error",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [[1388, 666], [1388, 135], [750, 135]],
+      "labelAt": [1210, 135]
+    },
+    {
+      "id": "outcome_to_learning",
+      "from": "productions",
+      "to": "feedback_learning",
+      "label": "trial outcome",
+      "variant": "dashed",
+      "via": [[475, 74], [8, 74], [8, 666]]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Reaction-time path",
+      "items": [
+        "Search production → module events → response production → motor stage"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "After the keypress",
+      "items": [
+        "Trial feedback updates learned search settings"
+      ]
+    }
+  ]
+}

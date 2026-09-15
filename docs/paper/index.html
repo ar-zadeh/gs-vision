@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Visual summary of SimpliSafe competitive voice monitoring reports.">
+  <title>Competitive Voice Monitor</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --line: #e7eaf0;
+      --paper: #ffffff;
+      --ground: #f5f7fb;
+      --blue: #3666f5;
+      --blue-soft: #eaf0ff;
+      --red: #db5b5b;
+      --green: #22866a;
+      --amber: #bd7b1f;
+      --shadow: 0 10px 30px rgba(27, 39, 69, .06);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--ground);
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: inherit; }
+    .shell { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar { background: var(--paper); border-bottom: 1px solid var(--line); }
+    .topbar .shell { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; font-weight: 750; letter-spacing: -.02em; }
+    .mark { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 9px; background: var(--blue); color: white; font-size: 17px; }
+    .quiet-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+    .quiet-link:hover, .report-link:hover { text-decoration: underline; }
+    main { padding: 46px 0 56px; }
+    .eyebrow { color: var(--blue); font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 690px; margin: 9px 0 12px; font-size: clamp(30px, 5vw, 48px); line-height: 1.07; letter-spacing: -.045em; }
+    h2 { margin-bottom: 17px; font-size: 19px; letter-spacing: -.025em; }
+    h3 { margin-bottom: 5px; font-size: 14px; }
+    .lede { max-width: 710px; color: var(--muted); font-size: 17px; }
+    .hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 28px; margin-bottom: 30px; }
+    .freshness { min-width: 208px; padding-bottom: 3px; color: var(--muted); font-size: 13px; }
+    .freshness strong { display: block; color: var(--ink); font-size: 14px; }
+    .data-links { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 30px; }
+    .button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; background: var(--paper); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 650; }
+    .button.primary { background: var(--blue); border-color: var(--blue); color: white; }
+    .button:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(31, 49, 95, .1); }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 34px; }
+    .metric, .panel, .report { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+    .metric { min-height: 132px; padding: 18px; }
+    .metric-label { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .metric-value { margin: 13px 0 2px; font-size: 32px; line-height: 1; letter-spacing: -.05em; font-weight: 760; }
+    .metric-note { color: var(--muted); font-size: 12px; }
+    .accent { color: var(--blue); }
+    .negative { color: var(--red); }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(280px, .78fr); gap: 18px; margin-bottom: 18px; }
+    .panel { padding: 22px; }
+    .panel-caption { margin: -8px 0 21px; color: var(--muted); font-size: 13px; }
+    .legend { display: flex; align-items: center; gap: 15px; color: var(--muted); font-size: 11px; }
+    .key { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 999px; background: var(--blue); }
+    .key.prior { background: #c9d0dd; }
+    .chart-header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .row { display: grid; grid-template-columns: 89px 1fr 33px; gap: 11px; align-items: center; margin: 14px 0; }
+    .row-name { font-size: 13px; font-weight: 700; }
+    .tracks { display: grid; gap: 4px; }
+    .track { height: 7px; overflow: hidden; border-radius: 99px; background: #edf0f5; }
+    .bar { height: 100%; min-width: 0; border-radius: inherit; background: var(--blue); }
+    .bar.prior { background: #c9d0dd; }
+    .delta { font-size: 12px; font-weight: 750; text-align: right; }
+    .delta.up { color: var(--amber); }
+    .delta.zero { color: var(--muted); }
+    .watchlist { display: grid; gap: 0; }
+    .watch { padding: 15px 0; border-top: 1px solid var(--line); }
+    .watch:first-child { padding-top: 0; border-top: 0; }
+    .watch:last-child { padding-bottom: 0; }
+    .tag { display: inline-block; margin-bottom: 7px; border-radius: 99px; padding: 3px 7px; background: #fff1f1; color: #b64444; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    .tag.opportunity { background: #eaf8f2; color: var(--green); }
+    .watch p { margin: 0; color: var(--muted); font-size: 13px; }
+    .analysis-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 0 0 34px; }
+    details.analysis { border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.72); transition: border-color .16s, background .16s; }
+    details.analysis[open] { border-color: #bdccff; background: var(--paper); }
+    details.analysis.full { grid-column: 1 / -1; }
+    details.analysis summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px; cursor: pointer; list-style: none; font-size: 15px; font-weight: 750; }
+    details.analysis summary::-webkit-details-marker { display: none; }
+    details.analysis summary::after { content: "+"; color: var(--blue); font-size: 20px; font-weight: 400; }
+    details.analysis[open] summary::after { content: "−"; }
+    .analysis-body { padding: 0 17px 18px; color: var(--muted); font-size: 13px; }
+    .analysis-body p { margin: 0 0 10px; }
+    .analysis-body p:last-child { margin-bottom: 0; }
+    .analysis-body strong { color: var(--ink); }
+    .analysis-body ul { margin: 8px 0 12px; padding-left: 18px; }
+    .analysis-body li { margin: 5px 0; }
+    .source-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 20px; margin: 5px 0 4px; padding: 0; list-style: none; }
+    .source-list a { color: var(--blue); font-weight: 650; text-decoration: none; }
+    .source-list a:hover { text-decoration: underline; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 16px; }
+    .section-head p { margin: 0; color: var(--muted); font-size: 13px; }
+    .reports { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .report { padding: 16px; box-shadow: none; }
+    .report.current { border-color: #b9caff; background: #f8faff; }
+    .report-date { color: var(--muted); font-size: 12px; }
+    .report h3 { margin: 6px 0 12px; font-size: 15px; }
+    .report-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .report-link { color: var(--blue); font-size: 12px; font-weight: 750; text-decoration: none; }
+    .footnote { margin: 25px 0 0; color: var(--muted); font-size: 12px; }
+    @media (max-width: 800px) {
+      .hero { display: block; } .freshness { margin-top: 20px; }
+      .metrics, .reports { grid-template-columns: repeat(2, 1fr); }
+      .grid { grid-template-columns: 1fr; } .analysis-grid { grid-template-columns: 1fr; }
+      details.analysis.full { grid-column: auto; } .source-list { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .shell { width: min(100% - 28px, 1160px); } main { padding-top: 30px; }
+      .topbar .shell { min-height: 56px; } .topbar .quiet-link { display: none; }
+      .metrics, .reports { grid-template-columns: 1fr; } .metric { min-height: 104px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell">
+      <a class="brand" href="index.html"><span class="mark">⌁</span> Competitive voice monitor</a>
+      <a class="quiet-link" href="../README.md">Methodology &amp; collection notes ↗</a>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <div class="eyebrow">SimpliSafe · US market</div>
+        <h1 id="page-title">The signal, without the noise.</h1>
+        <p class="lede">A concise view of the latest customer voice and competitive movement. Counts use dated US evidence only; follow any card to inspect the underlying report or raw archive.</p>
+      </div>
+      <div class="freshness"><strong>Latest report · Sep 11, 2026</strong>Comparison window: Sep 4–11<br>Previous window: Aug 28–Sep 4</div>
+    </section>
+
+    <nav class="data-links" aria-label="Latest report data">
+      <a class="button primary" href="simplisafe-competitive-monitor-2026-09-11.md">Read latest report <span aria-hidden="true">→</span></a>
+      <a class="button" href="../data/2026-09-11/raw-data.json">Raw evidence (JSON)</a>
+      <a class="button" href="../data/2026-09-11/gemini-prompt.txt">Analysis prompt</a>
+      <a class="button" href="../config/standing-sources.txt">Standing sources</a>
+    </nav>
+
+    <section class="metrics" aria-label="Latest window metrics">
+      <article class="metric"><div class="metric-label">Dated mentions</div><div class="metric-value accent">15</div><div class="metric-note">Across 4 observed brands</div></article>
+      <article class="metric"><div class="metric-label">Negative mentions</div><div class="metric-value negative">10</div><div class="metric-note">67% of current-window signal</div></article>
+      <article class="metric"><div class="metric-label">Largest movement</div><div class="metric-value">+5</div><div class="metric-note">Ring mentions vs. prior window</div></article>
+      <article class="metric"><div class="metric-label">Collection health</div><div class="metric-value">35</div><div class="metric-note">Sources: 17 Reddit · 18 other</div></article>
+    </section>
+
+    <section class="grid" aria-label="Competitive momentum and watchlist">
+      <article class="panel">
+        <div class="chart-header"><h2>Competitive momentum</h2><div class="legend"><span><i class="key"></i>Latest</span><span><i class="key prior"></i>Prior</span></div></div>
+        <p class="panel-caption">Dated mentions within each seven-day comparison window.</p>
+        <div class="row"><div class="row-name">Ring</div><div class="tracks"><div class="track"><div class="bar" style="width:100%"></div></div><div class="track"><div class="bar prior" style="width:29%"></div></div></div><div class="delta up">+5</div></div>
+        <div class="row"><div class="row-name">SimpliSafe</div><div class="tracks"><div class="track"><div class="bar" style="width:57%"></div></div><div class="track"><div class="bar prior" style="width:57%"></div></div></div><div class="delta zero">0</div></div>
+        <div class="row"><div class="row-name">Vivint</div><div class="tracks"><div class="track"><div class="bar" style="width:43%"></div></div><div class="track"><div class="bar prior" style="width:29%"></div></div></div><div class="delta up">+1</div></div>
+        <div class="row"><div class="row-name">Arlo</div><div class="tracks"><div class="track"><div class="bar" style="width:14%"></div></div><div class="track"><div class="bar prior" style="width:0%"></div></div></div><div class="delta up">+1</div></div>
+        <div class="row"><div class="row-name">ADT · Cove · Eufy · Nest</div><div class="tracks"><div class="track"></div><div class="track"></div></div><div class="delta zero">0</div></div>
+      </article>
+
+      <aside class="panel">
+        <h2>What needs attention</h2>
+        <div class="watchlist">
+          <div class="watch"><span class="tag">Risk</span><h3>Camera and lock reliability</h3><p>Motion-detection delays and smart-lock calibration failures remain the clearest SimpliSafe pain points.</p></div>
+          <div class="watch"><span class="tag">Competitive</span><h3>Ring conversation accelerating</h3><p>Negative setup and monitoring discussions account for most of Ring’s +5 mention increase.</p></div>
+          <div class="watch"><span class="tag opportunity">Opportunity</span><h3>Own contract-free flexibility</h3><p>Vivint’s cancellation and contract complaints create room for a clear transparent-plan message.</p></div>
+        </div>
+      </aside>
+    </section>
+
+    <section aria-labelledby="analysis-heading">
+      <div class="section-head"><h2 id="analysis-heading">Explore the latest analysis</h2><p>Click a section to read the finding and follow its evidence.</p></div>
+      <div class="analysis-grid">
+        <details class="analysis" open>
+          <summary>Customer voice</summary>
+          <div class="analysis-body">
+            <p><strong>SimpliSafe:</strong> users value the straightforward sensor setup and home-screen video previews, but the latest conversation is tempered by camera motion lag, smart-lock calibration failures, and exterior-camera Wi-Fi dropouts.</p>
+            <p><strong>Competitors:</strong> Ring’s higher volume is mostly negative, centered on monitoring reliability and installer-profile setup restrictions. Vivint’s discussion remains strongly negative, led by service failures, sales pressure, contracts, and difficult cancellation loops. Arlo had a single positive support-routing mention.</p>
+            <p><a class="report-link" href="simplisafe-competitive-monitor-2026-09-11.md">Read in full in the report →</a></p>
+          </div>
+        </details>
+        <details class="analysis">
+          <summary>Theme analysis</summary>
+          <div class="analysis-body">
+            <ul>
+              <li><strong>Installation:</strong> SimpliSafe retains a DIY ease-of-setup advantage; Ring’s installer profiles can block certain device pairings.</li>
+              <li><strong>Reliability:</strong> SimpliSafe camera latency and Wi-Fi penetration are the primary concerns; Ring monitoring and Vivint performance also draw criticism.</li>
+              <li><strong>Subscriptions &amp; support:</strong> SimpliSafe plan limits and rising costs are salient, while long waits and rigid support flows affect multiple brands.</li>
+            </ul>
+            <a class="report-link" href="simplisafe-competitive-monitor-2026-09-11.md">Read theme analysis →</a>
+          </div>
+        </details>
+        <details class="analysis">
+          <summary>Notable customer voices</summary>
+          <div class="analysis-body">
+            <p><strong>SimpliSafe:</strong> one long-term customer described serious motion-detection and lock-calibration problems; another was broadly satisfied with setup but reported exterior-camera signal loss through a cinder-block garage.</p>
+            <p><strong>Vivint &amp; Ring:</strong> one Vivint customer described a six-hour cancellation attempt and ongoing billing; a Ring customer reported smoke/CO listener installation failing under an installer profile.</p>
+            <p><a class="report-link" href="https://www.reddit.com/r/homesecurity/comments/1w5p215/need_smart_home_security_recommendations_fk/">SimpliSafe camera/lock discussion ↗</a> &nbsp; <a class="report-link" href="https://www.reddit.com/r/homesecurity/comments/1vyxjog/this_is_how_bad_vivint_are/">Vivint cancellation discussion ↗</a></p>
+          </div>
+        </details>
+        <details class="analysis">
+          <summary>Risks and opportunities</summary>
+          <div class="analysis-body">
+            <p><strong>Risk:</strong> recurring camera latency and lock-calibration complaints could push DIY buyers toward local-storage or stronger AI-tracking alternatives. Monitoring-price sensitivity adds pressure.</p>
+            <p><strong>Opportunity:</strong> SimpliSafe can contrast transparent, contract-free self-monitoring with Vivint’s cancellation/contract frustration, while strengthening the app-video-preview experience customers already appreciate.</p>
+            <a class="report-link" href="simplisafe-competitive-monitor-2026-09-11.md">Read risks and opportunities →</a>
+          </div>
+        </details>
+        <details class="analysis">
+          <summary>Pricing and product changes</summary>
+          <div class="analysis-body">
+            <ul>
+              <li><strong>Ring:</strong> announced the $299.99 Dome Cam 4K, with PoE/USB-C, local-storage backup, and continuous 4K recording.</li>
+              <li><strong>ADT:</strong> promotes a free monitoring month and 50% off select Blu kits and cameras.</li>
+              <li><strong>Cove / Eufy:</strong> emphasize discounted monitoring and zero-monthly-fee local storage, respectively.</li>
+            </ul>
+            <a class="report-link" href="simplisafe-competitive-monitor-2026-09-11.md">Read product changes →</a>
+          </div>
+        </details>
+        <details class="analysis">
+          <summary>Sources</summary>
+          <div class="analysis-body">
+            <p>The latest report draws on 35 sources: 17 Reddit RSS items, 4 forum/review sources, and 14 official/product pages. These links lead to representative primary discussions and the full source record.</p>
+            <ul class="source-list">
+              <li><a href="https://www.reddit.com/r/homesecurity/comments/1w4rbo1/wireless_camera_signal_help/">SimpliSafe camera signal discussion ↗</a></li>
+              <li><a href="https://www.reddit.com/r/Ring/comments/1w94mtx/ring_2nd_gen_smokeco_listeners/">Ring installer-profile discussion ↗</a></li>
+              <li><a href="https://blog.ring.com/products-innovation/introducing-the-ring-dome-cam-4k-affordable-professional-security-built-for-businesses-of-all-sizes/">Ring Dome Cam 4K announcement ↗</a></li>
+              <li><a href="https://www.eufy.com/products/e814x12s">EufyCam C37 product page ↗</a></li>
+            </ul>
+            <p><a class="report-link" href="simplisafe-competitive-monitor-2026-09-11.md">All cited sources in the report →</a> &nbsp; <a class="report-link" href="../data/2026-09-11/raw-data.json">Complete captured evidence (JSON) →</a></p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section aria-labelledby="reports-heading">
+      <div class="section-head"><h2 id="reports-heading">Report archive</h2><p>Every report remains available alongside its captured inputs.</p></div>
+      <div class="reports">
+        <article class="report current"><div class="report-date">Sep 11, 2026 · latest</div><h3>Competitive voice monitor</h3><div class="report-links"><a class="report-link" href="simplisafe-competitive-monitor-2026-09-11.md">Report</a><a class="report-link" href="../data/2026-09-11/raw-data.json">Raw JSON</a><a class="report-link" href="../data/2026-09-11/gemini-prompt.txt">Prompt</a></div></article>
+        <article class="report"><div class="report-date">Sep 10, 2026 · archive</div><h3>Competitive voice monitor</h3><div class="report-links"><a class="report-link" href="simplisafe-competitive-monitor-2026-09-10.md">Report</a><a class="report-link" href="../data/2026-09-10/raw-data.json">Raw JSON</a><a class="report-link" href="../data/2026-09-10/gemini-prompt.txt">Prompt</a></div></article>
+        <article class="report"><div class="report-date">Sep 8, 2026</div><h3>Competitive voice monitor</h3><div class="report-links"><a class="report-link" href="simplisafe-competitive-monitor-2026-09-08.md">Report</a><a class="report-link" href="../data/2026-09-08/raw-data.json">Raw JSON</a><a class="report-link" href="../data/2026-09-08/gemini-prompt.txt">Prompt</a></div></article>
+        <article class="report"><div class="report-date">Sep 7, 2026</div><h3>Competitive voice monitor</h3><div class="report-links"><a class="report-link" href="simplisafe-competitive-monitor-2026-09-07.md">Report</a><span class="quiet-link">No raw archive retained</span></div></article>
+      </div>
+      <p class="footnote">Numbers shown here are from <a href="simplisafe-competitive-monitor-2026-09-11.md">the latest report</a>. The monitor uses a 30-day discovery horizon and strict seven-day comparison windows; undated and non-US evidence is excluded from numeric tallies. See the <a href="../README.md">monitoring README</a> for collection details.</p>
+    </section>
+  </main>
+</body>
+</html>

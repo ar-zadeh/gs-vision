@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Patch
+from matplotlib.patches import Patch
 import numpy as np, sys
 OUT = sys.argv[1]
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 9, "axes.spines.top": False,
@@ -21,11 +21,11 @@ rows = [  # name, in ACT-R, test, validation
  ("GS6 engine, as posted", False, 123.3, 170.8),
  ("gs-vision, frozen fit", True, 127.7, 143.1),
  ("Parallel race", False, 129.4, 208.2),
- ("Stock ACT-R vision, timing fitted", True, 137.3, 149.6),
+ ("Default ACT-R vision, timing fitted", True, 137.3, 149.6),
  ("PAAV, fitted (mirror)", True, 275.4, 253.1),
  ("gs-vision, module defaults", True, 365.4, 411.1),
  ("PAAV, posted values (mirror)", True, 382.9, 343.5),
- ("Stock ACT-R vision, defaults", True, 501.1, 515.5),
+ ("Default ACT-R vision, default settings", True, 501.1, 515.5),
 ]
 fig, axes = plt.subplots(1, 2, figsize=(7.5, 4.9), sharey=True)
 names = [r[0] for r in rows][::-1]
@@ -40,7 +40,7 @@ for ax, col, title, floor in zip(axes, (2, 3), ("Test participants", "Validation
     ax.set_xlim(0, 600); ax.set_title(title, fontsize=10, loc="left")
     ax.set_xlabel("Mean cell quantile RMSE (ms)" + chr(10) + f"dashed: training-group averages, {floor:.0f} ms", fontsize=8); ax.grid(axis="x"); ax.set_axisbelow(True)
 axes[0].set_yticks(y); axes[0].set_yticklabels(names, fontsize=8)
-fig.legend(handles=[Patch(color=BLUE, label="ACT-R vision module (PAAV and stock: timing mirrors)"),
+fig.legend(handles=[Patch(color=BLUE, label="ACT-R vision module (default and PAAV: timing mirrors)"),
                     Patch(color=GRAY, label="Trial-level model (no display)")],
            loc="lower center", ncol=2, fontsize=7.5, frameon=False, bbox_to_anchor=(0.56, 0.0))
 fig.tight_layout(rect=(0, 0.05, 1, 1)); fig.savefig(f"{OUT}/fig_comparison.png", dpi=300); plt.close(fig)
@@ -64,40 +64,6 @@ for ax, (task, series) in zip(axes, data.items()):
 axes[0].set_ylabel("Miss rate on present trials (%)"); axes[0].set_ylim(0, 24)
 axes[0].legend(fontsize=7, frameon=False, loc="upper left")
 fig.tight_layout(); fig.savefig(f"{OUT}/fig_misses.png", dpi=300); plt.close(fig)
-
-# ---------- Figure: architecture ----------
-NL = chr(10)
-fig, ax = plt.subplots(figsize=(7.5, 5.2)); ax.set_xlim(0, 100); ax.set_ylim(-2.5, 70); ax.axis("off")
-def box(x, y, w, h, text, fc="#f4f6fa", ec="#3b5a8a", fs=8, bold=False):
-    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.4,rounding_size=1.2", fc=fc, ec=ec, lw=1.1))
-    ax.text(x + w/2, y + h/2, text, ha="center", va="center", fontsize=fs, fontweight="bold" if bold else "normal", color="#111")
-def arrow(x1, y1, x2, y2, color="#3b5a8a", conn="arc3,rad=0"):
-    ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>", mutation_scale=11, color=color, lw=1.1, connectionstyle=conn))
-ax.add_patch(FancyBboxPatch((2, 58), 96, 10, boxstyle="round,pad=0.4", fc="#fbf7ee", ec="#c9a45c", lw=1.2))
-ax.text(4, 66.4, "Productions (the unchanged ACT-R procedural module)", fontsize=8.5, fontweight="bold", color="#5a4410")
-box(6, 59.5, 24, 5.5, "+visual> isa gs-search" + NL + "color red  orient steep", fc="#fff", ec="#c9a45c", fs=7.5)
-box(38, 59.5, 24, 5.5, "=visual> target object" + NL + "or  ?visual> state error", fc="#fff", ec="#c9a45c", fs=7.5)
-box(70, 59.5, 24, 5.5, "+visual> isa gs-feedback" + NL + "outcome hit | miss | fa | tn", fc="#fff", ec="#c9a45c", fs=7.5)
-ax.add_patch(FancyBboxPatch((2, 8), 96, 46, boxstyle="round,pad=0.4", fc="#f7f9fc", ec="#3b5a8a", lw=1.2))
-ax.text(4, 52.3, "gs-vision module (subclass of the ACT-R 7.31.4 vision module; runs on its own scheduled events)", fontsize=8.5, fontweight="bold", color="#1e3a66")
-box(4, 40, 20, 8, "Visicon + acuity" + NL + "per-feature availability" + NL + "by eccentricity", fs=7.5)
-box(4, 28, 20, 8, "Iconic memory" + NL + "4 s persistence," + NL + "refreshed each fixation", fs=7.5)
-box(29, 34, 22, 12, "Priority map" + NL + "bottom-up + top-down" + NL + "+ history + value + scene" + NL + "- IOR, + noise", fs=7.5)
-box(56, 40, 18, 7, "Covert selection" + NL + "Luce choice every 50 ms" + NL + "inside attentional field", fs=7)
-box(56, 28, 18, 8, "Asynchronous diffuser" + NL + "5 items, Wald" + NL + "identification time", fs=7)
-box(79, 40, 17, 7, "Hit: build object," + NL + "attend, deliver" + NL + "to visual buffer", fc="#eaf5ee", ec="#2e7d4f", fs=7)
-box(79, 28, 17, 8, "Reject: IOR ring," + NL + "quit-unit weight" + NL + "+= delta", fs=7)
-box(56, 14, 18, 8, "Quit rules" + NL + "competitive lottery" + NL + "+ adaptive threshold", fs=7)
-box(79, 14, 17, 8, "Failure: buffer" + NL + "empty, state error", fc="#fbeeee", ec="#a33", fs=7)
-box(29, 14, 22, 8, "Saccades (EMMA)" + NL + "preparation, execution," + NL + "landing noise; triggered" + NL + "by peripheral guidance", fs=7)
-box(4, 14, 20, 8, "Feedback learning" + NL + "threshold scale," + NL + "prevalence, priming", fs=7)
-arrow(24, 44, 29, 42); arrow(24, 32, 29, 38); arrow(14, 40, 14, 36.4)
-arrow(51, 41, 56, 43); arrow(65, 40, 65, 36.4); arrow(74, 32, 79, 44, conn="arc3,rad=-0.2"); arrow(74, 31, 79, 31)
-arrow(87, 28, 87, 22.4); arrow(79, 31, 74, 19, conn="arc3,rad=0.2"); arrow(74, 17, 79, 17)
-arrow(56, 17, 51, 18); arrow(40, 22, 40, 34); arrow(29, 18, 24, 18); arrow(14, 22, 14, 28)
-arrow(18, 59.5, 18, 48.4, color="#c9a45c"); arrow(87.5, 47, 50, 59.5, color="#2e7d4f", conn="arc3,rad=0.15"); arrow(87.5, 22.4, 50, 59.5, color="#a33", conn="arc3,rad=-0.25")
-ax.plot([82, 82, 97.2, 97.2, 14, 14], [59.5, 56.5, 56.5, 10.5, 10.5, 12.5], color="#c9a45c", lw=1.1, solid_capstyle="round")
-arrow(14, 12.5, 14, 13.6, color="#c9a45c")
-ax.text(50, -0.8, "Inside RT: search production, module events, response production, motor stage.   After the keypress: feedback.", fontsize=7.5, ha="center", color="#333", style="italic")
-fig.savefig(f"{OUT}/fig_architecture.png", dpi=300, bbox_inches="tight"); plt.close(fig)
+# Figure 1 uses the publication styling in figs/fig_architecture.html.
+# Regenerate its SVG and PNG with: python docs/paper/render_architecture.py
 print("ok")
